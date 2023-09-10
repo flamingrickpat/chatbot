@@ -1,6 +1,6 @@
 import sqlite3
 import os
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 
 from chatbot.global_state import GlobalState
 from chatbot.exceptions import *
@@ -12,6 +12,7 @@ class MessageManager():
         self.cur = None
 
         self.current_character_id = 0
+        self.current_character_name = ""
 
         self.init_database()
 
@@ -81,5 +82,17 @@ class MessageManager():
         if len(res) > 0:
             id = res[0]["id"]
             self.current_character_id = id
+            self.current_character_name = res[0]["name"]
         else:
             raise CharacterDoesntExistsException()
+
+    def update_character_card(self, card: str) -> (str, str):
+        """Update the character card of the current character."""
+        #model_manager = self.gs.model_manager
+        token_count = 100 #model_manager.get_token_count(card)
+
+        sql = "update characters set card = ?, token_count = ? where id = ?"
+        self.cur.execute(sql, (card, token_count, self.current_character_id))
+        self.con.commit()
+
+        return self.current_character_name, token_count

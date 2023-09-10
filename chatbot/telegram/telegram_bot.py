@@ -113,6 +113,17 @@ async def select_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         except Exception as e:
             await update.message.reply_text("Error: " + str(e))
 
+async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Change a character card."""
+
+    if check_user(update.effective_user.id):
+        gs = GlobalState()
+        if gs.telegram_state == TELEGRAM_STATE_CHAT:
+            gs.telegram_state = TELEGRAM_STATE_CARD
+            await update.message.reply_text("Send the new character card with the next message!")
+        else:
+            await update.message.reply_text("Please select a character first!")
+
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Chat with the bot.
@@ -143,6 +154,11 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 pool_timeout=DEFAULT_NONE,
                 api_kwargs=None
             )
+        elif gs.telegram_state == TELEGRAM_STATE_CARD:
+            text = update.message.text.strip()
+            name, token_length = gs.message_manager.update_character_card(text)
+            await update.message.reply_text(f"Character card for {name} was updated. Token length: {token_length}")
+            gs.telegram_state = TELEGRAM_STATE_CHAT
     else:
         await update.message.reply_text("You are not white-listed and can't use this bot!")
 
@@ -171,6 +187,7 @@ def run_telegram_bot() -> None:
     application.add_handler(CommandHandler("add", add_command))
     application.add_handler(CommandHandler("delete", delete_command))
     application.add_handler(CommandHandler("select", select_command))
+    application.add_handler(CommandHandler("card", card_command))
 
     application.add_handler(CallbackQueryHandler(InlineKeyboardHandler))
     # application.add_handler(CommandHandler('request_button', menu))
