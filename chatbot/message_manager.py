@@ -3,7 +3,7 @@ import os
 from typing import Dict, List, Any
 
 from chatbot.global_state import GlobalState
-from chatbot.exceptions import CharacterAlreadyExistsException
+from chatbot.exceptions import *
 
 class MessageManager():
     def __init__(self):
@@ -55,4 +55,18 @@ class MessageManager():
             self.con.commit()
         else:
             raise CharacterAlreadyExistsException()
+
+
+    def delete_character(self, name: str) -> None:
+        """
+        Add a new character.
+        """
+        sql = "select name from characters where name = ?"
+        res = self.cur.execute(sql, (name,)).fetchall()
+        if len(res) > 0:
+            sql = "delete from characters where name = (?)"
+            self.cur.execute(sql, (name,))
+            self.con.commit()
+        else:
+            raise CharacterDoesntExistsException()
 

@@ -59,6 +59,21 @@ async def add_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text("Error: " + str(e))
 
 
+async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Delete a character."""
+    gs = GlobalState()
+    try:
+        name = context.args[0]
+        gs.message_manager.delete_character(name)
+        await update.message.reply_text(f"Successfully deleted character {name}!")
+    except CharacterDoesntExistsException as e:
+        await update.message.reply_text("Character doesn't exists!")
+    except IndexError as e:
+        await update.message.reply_text("You need to submit the name as parameter!")
+    except Exception as e:
+        await update.message.reply_text("Error: " + str(e))
+
+
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
     user = update.effective_user
@@ -98,6 +113,7 @@ def run_telegram_bot() -> None:
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("list", list_command))
     application.add_handler(CommandHandler("add", add_command))
+    application.add_handler(CommandHandler("delete", delete_command))
 
     application.add_handler(CallbackQueryHandler(InlineKeyboardHandler))
     # application.add_handler(CommandHandler('request_button', menu))

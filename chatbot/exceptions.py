@@ -9,4 +9,7 @@ class ConfigNotFoundException(Exception):
     """
 
 class CharacterAlreadyExistsException(Exception):
-    """Chracter name in db already exists."""
+    """Character name in db already exists."""
+
+class CharacterDoesntExistsException(Exception):
+    """Character doesn't exist."""
