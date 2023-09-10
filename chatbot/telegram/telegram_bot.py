@@ -14,16 +14,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
     await update.message.reply_html(
-        rf"Hi {user.mention_html()}!",
+        rf"Hi {user.mention_html()}!\nType /help to see available commands.",
         reply_markup=ForceReply(selective=True),
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
     await update.message.reply_text("""
-    
-    
-    """)
+/help - Show available commands
+/list - Show all characters.
+/add {character_name} - Create a new character
+/delete {character_name} - Delete character
+/select {character_name} - Select current character
+/card - Change character card
+/regenerate - Regenerate last reply
+""")
+
+
+async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """List available characters"""
+    gs = GlobalState()
+    chars = gs.message_manager.list_available_characters()
+    await update.message.reply_text(chars)
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
