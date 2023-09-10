@@ -11,6 +11,8 @@ class MessageManager():
         self.con = None
         self.cur = None
 
+        self.current_character_id = 0
+
         self.init_database()
 
 
@@ -70,3 +72,14 @@ class MessageManager():
         else:
             raise CharacterDoesntExistsException()
 
+    def select_character(self, name: str) -> None:
+        """
+        Select a character.
+        """
+        sql = "select * from characters where name = ?"
+        res = self.cur.execute(sql, (name,)).fetchall()
+        if len(res) > 0:
+            id = res[0]["id"]
+            self.current_character_id = id
+        else:
+            raise CharacterDoesntExistsException()
