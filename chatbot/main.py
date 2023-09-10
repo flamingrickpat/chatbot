@@ -12,6 +12,7 @@ from chatbot.telegram import run_telegram_bot
 from chatbot.constants import *
 
 from chatbot.message_manager import MessageManager
+from chatbot.model_manager import ModelManager
 from chatbot.global_state import GlobalState
 
 logger = logging.getLogger('chatbot')
@@ -35,6 +36,9 @@ def main(args: List[str]) -> None:
 
     message_manager = MessageManager()
     gs.message_manager = message_manager
+
+    model_manager = ModelManager()
+    gs.model_manager = model_manager
 
     setup_logging_config(config, "logs/chatbot.log")
 

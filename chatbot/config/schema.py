@@ -5,7 +5,7 @@ config_schema = \
         "title": "kektrade",
         "description": "kektrade metastrategy configuration file",
         "type": "object",
-        "required": ["telegram"],
+        "required": ["telegram", "tokenizer_path"],
         "properties": {
             "telegram": {
                 "$ref": "#/$defs/telegram",
@@ -27,6 +27,11 @@ config_schema = \
                 "description": "write log to stdout",
                 "default": True
             },
+            "tokenizer_path": {
+                "type": "string",
+                "description": "path to tokenizer. should be a folder with tokenizer.json",
+            }
+
         },
 
         "$defs": {

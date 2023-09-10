@@ -9,6 +9,7 @@ model_name = "X:/AI/oobabooga2/oobabooga_windows/text-generation-webui/models/ai
 adapters_name = "X:/AI/oobabooga2/oobabooga_windows/text-generation-webui/loras/kara"
 device = "cuda:0"
 
+
 tokenizer = AutoTokenizer.from_pretrained(
     model_name,
     local_files_only=True,

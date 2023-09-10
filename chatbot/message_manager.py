@@ -88,8 +88,8 @@ class MessageManager():
 
     def update_character_card(self, card: str) -> (str, str):
         """Update the character card of the current character."""
-        #model_manager = self.gs.model_manager
-        token_count = 100 #model_manager.get_token_count(card)
+        model_manager = self.gs.model_manager
+        token_count = model_manager.get_token_count(card)
 
         sql = "update characters set card = ?, token_count = ? where id = ?"
         self.cur.execute(sql, (card, token_count, self.current_character_id))
