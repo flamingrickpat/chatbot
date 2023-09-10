@@ -8,7 +8,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, ConversationHandler, CallbackContext, CallbackQueryHandler
 from queue import Queue
 from chatbot.config import configuration
-
+from chatbot.global_state import GlobalState
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
@@ -20,7 +20,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    await update.message.reply_text("Help!")
+    await update.message.reply_text("""
+    
+    
+    """)
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
@@ -48,10 +51,13 @@ async def InlineKeyboardHandler(update: Update, context: CallbackContext) -> Non
     query = update.callback_query
     await query.answer(f'')
 
-def run_telegram_bot(config: Dict[str, Any]) -> None:
+def run_telegram_bot() -> None:
     """Start the bot."""
+
+    gs = GlobalState()
+
     # Create the Application and pass it your bot's token.
-    application = Application.builder().token(config["telegram"]["api_key"]).build()
+    application = Application.builder().token(gs.config["telegram"]["api_key"]).build()
 
     # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
