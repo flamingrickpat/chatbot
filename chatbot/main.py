@@ -7,6 +7,8 @@ from chatbot.config import get_config
 from chatbot.config import validate_arguments
 from chatbot.logger import setup_logging_default, setup_logging_config
 
+from chatbot.telegram import run_telegram_bot
+
 logger = logging.getLogger('chatbot')
 
 def main(args: List[str]) -> None:
@@ -24,4 +26,10 @@ def main(args: List[str]) -> None:
 
     setup_logging_config(config, "logs/chatbot.log")
 
-    logger.info("Test")
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
+    logger.info("Starting Telegram bot...")
+
+    run_telegram_bot(config)
+
+    logger.info("Started Telegram bot!")
