@@ -35,7 +35,10 @@ async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """List available characters"""
     gs = GlobalState()
     chars = gs.message_manager.list_available_characters()
-    await update.message.reply_text(chars)
+    res = ""
+    for char in chars:
+        res = res + char + "\n"
+    await update.message.reply_text(res.strip())
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
@@ -74,6 +77,7 @@ def run_telegram_bot() -> None:
     # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("list", list_command))
 
     application.add_handler(CallbackQueryHandler(InlineKeyboardHandler))
     # application.add_handler(CommandHandler('request_button', menu))

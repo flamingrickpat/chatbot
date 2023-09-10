@@ -23,18 +23,17 @@ def main(args: List[str]) -> None:
     Start message manager and telegram bot.
     :param args: parameters
     """
+    gs = GlobalState()
+
     setup_logging_default()
 
     args = validate_arguments(args)
 
     config_path = args.config
     config = get_config(config_path)
+    gs.config = config
 
     message_manager = MessageManager()
-
-    gs = GlobalState()
-    gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
-    gs.config = config
     gs.message_manager = message_manager
 
     setup_logging_config(config, "logs/chatbot.log")
@@ -42,4 +41,5 @@ def main(args: List[str]) -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     logger.info("Starting Telegram bot...")
+    gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
     run_telegram_bot()

@@ -11,6 +11,11 @@ config_schema = \
                 "$ref": "#/$defs/telegram",
                 "description": "telegram settings"
             },
+            "database_path": {
+                "type": "string",
+                "description": "path to database",
+                "default": "./database/database.db"
+            },
             "log_level": {
                 "type": "string",
                 "description": "minimum importance to show log line",
