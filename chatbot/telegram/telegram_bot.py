@@ -1,6 +1,8 @@
 import logging
+import time
 from typing import Dict, Any
 from telegram import ForceReply, Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram._utils.defaultvalue import DEFAULT_NONE
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, ConversationHandler, CallbackContext, CallbackQueryHandler
@@ -24,13 +26,29 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
     user = update.effective_user
     text = update.message.text
-    await update.message.reply_text(text)
+    tmp = await update.message.reply_text(text)
+
+    chat_id = tmp.chat_id
+    message_id = tmp.message_id
+
+    time.sleep(5)
+
+    await context.bot.deleteMessage(
+        chat_id=chat_id,
+        message_id=message_id,
+        read_timeout=DEFAULT_NONE,
+        write_timeout=DEFAULT_NONE,
+        connect_timeout=DEFAULT_NONE,
+        pool_timeout=DEFAULT_NONE,
+        api_kwargs=None
+    )
+
 
 async def InlineKeyboardHandler(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     await query.answer(f'')
 
-def run_telegram_bot(config: Dict[str, Any]):
+def run_telegram_bot(config: Dict[str, Any]) -> None:
     """Start the bot."""
     # Create the Application and pass it your bot's token.
     application = Application.builder().token(config["telegram"]["api_key"]).build()
