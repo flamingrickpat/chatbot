@@ -16,17 +16,25 @@ from chatbot.global_state import GlobalState
 from chatbot.exceptions import *
 from chatbot.constants import *
 
+def check_user(user_id: int) -> bool:
+    gs = GlobalState()
+    return user_id in gs.config["telegram"]["user_whitelist"]
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
-    user = update.effective_user
-    await update.message.reply_html(
-        rf"Hi {user.mention_html()}!\nType /help to see available commands.",
-        reply_markup=ForceReply(selective=True),
-    )
+
+    if check_user(update.effective_user.id):
+        user = update.effective_user
+        await update.message.reply_html(
+            rf"Hi {user.mention_html()}!\nType /help to see available commands.",
+            reply_markup=ForceReply(selective=True),
+        )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    await update.message.reply_text("""
+
+    if check_user(update.effective_user.id):
+        await update.message.reply_text("""
 /help - Show available commands
 /list - Show all characters.
 /add {character_name} - Create a new character
@@ -39,63 +47,71 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """List available characters"""
-    gs = GlobalState()
-    gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
-    chars = gs.message_manager.list_available_characters()
-    if len(chars) == 0:
-        await update.message.reply_text("No characters!")
-    else:
-        res = ""
-        for char in chars:
-            res = res + char + "\n"
-        await update.message.reply_text(res.strip())
+
+    if check_user(update.effective_user.id):
+        gs = GlobalState()
+        gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
+        chars = gs.message_manager.list_available_characters()
+        if len(chars) == 0:
+            await update.message.reply_text("No characters!")
+        else:
+            res = ""
+            for char in chars:
+                res = res + char + "\n"
+            await update.message.reply_text(res.strip())
 
 async def add_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Create a new character."""
-    gs = GlobalState()
-    gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
-    try:
-        name = context.args[0]
-        gs.message_manager.add_character(name)
-        await update.message.reply_text(f"Successfully created character {name}!")
-    except CharacterAlreadyExistsException as e:
-        await update.message.reply_text("Character already exists!")
-    except IndexError as e:
-        await update.message.reply_text("You need to submit the name as parameter!")
-    except Exception as e:
-        await update.message.reply_text("Error: " + str(e))
+
+    if check_user(update.effective_user.id):
+        gs = GlobalState()
+        gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
+        try:
+            name = context.args[0]
+            gs.message_manager.add_character(name)
+            await update.message.reply_text(f"Successfully created character {name}!")
+        except CharacterAlreadyExistsException as e:
+            await update.message.reply_text("Character already exists!")
+        except IndexError as e:
+            await update.message.reply_text("You need to submit the name as parameter!")
+        except Exception as e:
+            await update.message.reply_text("Error: " + str(e))
 
 
 async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Delete a character."""
-    gs = GlobalState()
-    gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
-    try:
-        name = context.args[0]
-        gs.message_manager.delete_character(name)
-        await update.message.reply_text(f"Successfully deleted character {name}!")
-    except CharacterDoesntExistsException as e:
-        await update.message.reply_text("Character doesn't exists!")
-    except IndexError as e:
-        await update.message.reply_text("You need to submit the name as parameter!")
-    except Exception as e:
-        await update.message.reply_text("Error: " + str(e))
+
+    if check_user(update.effective_user.id):
+        gs = GlobalState()
+        gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
+        try:
+            name = context.args[0]
+            gs.message_manager.delete_character(name)
+            await update.message.reply_text(f"Successfully deleted character {name}!")
+        except CharacterDoesntExistsException as e:
+            await update.message.reply_text("Character doesn't exists!")
+        except IndexError as e:
+            await update.message.reply_text("You need to submit the name as parameter!")
+        except Exception as e:
+            await update.message.reply_text("Error: " + str(e))
 
 async def select_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Delete a character."""
-    gs = GlobalState()
-    gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
-    try:
-        name = context.args[0]
-        gs.message_manager.select_character(name)
-        gs.telegram_state = TELEGRAM_STATE_CHAT
-        await update.message.reply_text(f"Successfully selected character {name}!")
-    except CharacterDoesntExistsException as e:
-        await update.message.reply_text("Character doesn't exists!")
-    except IndexError as e:
-        await update.message.reply_text("You need to submit the name as parameter!")
-    except Exception as e:
-        await update.message.reply_text("Error: " + str(e))
+
+    if check_user(update.effective_user.id):
+        gs = GlobalState()
+        gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
+        try:
+            name = context.args[0]
+            gs.message_manager.select_character(name)
+            gs.telegram_state = TELEGRAM_STATE_CHAT
+            await update.message.reply_text(f"Successfully selected character {name}!")
+        except CharacterDoesntExistsException as e:
+            await update.message.reply_text("Character doesn't exists!")
+        except IndexError as e:
+            await update.message.reply_text("You need to submit the name as parameter!")
+        except Exception as e:
+            await update.message.reply_text("Error: " + str(e))
 
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -104,28 +120,31 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     Then append user message to chat history in database and generate a prompt that is sent to the model.
     """
 
-    gs = GlobalState()
-    if gs.telegram_state == TELEGRAM_STATE_UNINITIALIZED:
-        await update.message.reply_text("Please select a character first!")
-    elif gs.telegram_state == TELEGRAM_STATE_CHAT:
-        user = update.effective_user
-        text = update.message.text
-        tmp = await update.message.reply_text(text)
+    if check_user(update.effective_user.id):
+        gs = GlobalState()
+        if gs.telegram_state == TELEGRAM_STATE_UNINITIALIZED:
+            await update.message.reply_text("Please select a character first!")
+        elif gs.telegram_state == TELEGRAM_STATE_CHAT:
+            user = update.effective_user
+            text = update.message.text
+            tmp = await update.message.reply_text(text)
 
-        chat_id = tmp.chat_id
-        message_id = tmp.message_id
+            chat_id = tmp.chat_id
+            message_id = tmp.message_id
 
-        time.sleep(5)
+            time.sleep(5)
 
-        await context.bot.deleteMessage(
-            chat_id=chat_id,
-            message_id=message_id,
-            read_timeout=DEFAULT_NONE,
-            write_timeout=DEFAULT_NONE,
-            connect_timeout=DEFAULT_NONE,
-            pool_timeout=DEFAULT_NONE,
-            api_kwargs=None
-        )
+            await context.bot.deleteMessage(
+                chat_id=chat_id,
+                message_id=message_id,
+                read_timeout=DEFAULT_NONE,
+                write_timeout=DEFAULT_NONE,
+                connect_timeout=DEFAULT_NONE,
+                pool_timeout=DEFAULT_NONE,
+                api_kwargs=None
+            )
+    else:
+        await update.message.reply_text("You are not white-listed and can't use this bot!")
 
 
 async def InlineKeyboardHandler(update: Update, context: CallbackContext) -> None:
