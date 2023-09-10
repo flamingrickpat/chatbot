@@ -9,6 +9,7 @@ from telegram.ext import Updater, CommandHandler, ConversationHandler, CallbackC
 from queue import Queue
 from chatbot.config import configuration
 from chatbot.global_state import GlobalState
+from chatbot.exceptions import *
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
@@ -39,6 +40,21 @@ async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     for char in chars:
         res = res + char + "\n"
     await update.message.reply_text(res.strip())
+
+async def add_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Create a new character."""
+    gs = GlobalState()
+    try:
+        name = context.args[0]
+        gs.message_manager.add_character(name)
+        await update.message.reply_text(f"Successfully created character {name}!")
+    except CharacterAlreadyExistsException as e:
+        await update.message.reply_text("Character already exists!")
+    except IndexError as e:
+        await update.message.reply_text("You need to submit the name as parameter!")
+    except Exception as e:
+        await update.message.reply_text("Error: " + str(e))
+
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
@@ -78,6 +94,7 @@ def run_telegram_bot() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("list", list_command))
+    application.add_handler(CommandHandler("add", add_command))
 
     application.add_handler(CallbackQueryHandler(InlineKeyboardHandler))
     # application.add_handler(CommandHandler('request_button', menu))
