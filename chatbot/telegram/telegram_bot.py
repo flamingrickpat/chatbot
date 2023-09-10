@@ -36,10 +36,13 @@ async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """List available characters"""
     gs = GlobalState()
     chars = gs.message_manager.list_available_characters()
-    res = ""
-    for char in chars:
-        res = res + char + "\n"
-    await update.message.reply_text(res.strip())
+    if len(chars) == 0:
+        await update.message.reply_text("No characters!")
+    else:
+        res = ""
+        for char in chars:
+            res = res + char + "\n"
+        await update.message.reply_text(res.strip())
 
 async def add_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Create a new character."""
