@@ -138,6 +138,17 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif gs.telegram_state == TELEGRAM_STATE_CHAT:
             user = update.effective_user
             text = update.message.text
+
+            gs.message_manager.insert_message(is_user=True, message=text)
+
+            db_id, response = gs.message_manager.get_response()
+            msg = await update.message.reply_text(response)
+            chat_id = msg.chat_id
+            message_id = msg.message_id
+            gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
+
+            return
+
             tmp = await update.message.reply_text(text)
 
             chat_id = tmp.chat_id

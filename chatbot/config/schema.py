@@ -2,14 +2,22 @@ config_schema = \
     {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "https://flamingrickp.at/chatbot.schema.json",
-        "title": "kektrade",
-        "description": "kektrade metastrategy configuration file",
+        "title": "chatbot",
+        "description": "chatbot configuration file",
         "type": "object",
-        "required": ["telegram", "tokenizer_path"],
+        "required": ["user_name", "context_size", "telegram", "tokenizer_path"],
         "properties": {
             "telegram": {
                 "$ref": "#/$defs/telegram",
                 "description": "telegram settings"
+            },
+            "user_name": {
+                "type": "string",
+                "description": "name of user",
+            },
+            "context_size": {
+                "type": "integer",
+                "description": "how long prompts should be",
             },
             "database_path": {
                 "type": "string",
