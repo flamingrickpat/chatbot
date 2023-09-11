@@ -128,7 +128,7 @@ class MessageManager():
         :return: tuple of id of new response in database and text
         """
         prompt = self.get_prompt()
-        logger.info(prompt.replace("\n", ""))
+        logger.info("New prompt: " + prompt.replace("\n", "\\n"))
 
         text = ""
         db_id = 0
@@ -145,7 +145,9 @@ class MessageManager():
                 # Try until character name is in response!
                 while True:
                     text = self.call_model(prompt)
-                    if f"{self.current_character_name}:" in text:
+                    user_name = self.gs.config["user_name"]
+                    if f"{user_name}:" in text:
+                        text = text.replace(f"{user_name}:", "").strip()
                         break
 
                 # Clean up and insert into db!
@@ -211,6 +213,9 @@ class MessageManager():
         for msg in reversed(messages_within_context):
             new_prompt = new_prompt + msg.strip() + "\n"
 
+        # Add character name to prompt
+        new_prompt = new_prompt + f"{self.current_character_name}: "
+
         # Check final length
         final_length = self.gs.model_manager.get_token_count(new_prompt)
         assert(final_length <= self.gs.config["context_size"])
@@ -218,4 +223,10 @@ class MessageManager():
         return new_prompt
 
     def call_model(self, prompt: str) -> str:
-        return "Test: this is a test response!"
+        """
+        Append
+        :param prompt:
+        :return:
+        """
+        user_name = self.gs.config["user_name"]
+        return self.gs.model_manager.get_message(prompt, stop_word=f"{user_name}:")

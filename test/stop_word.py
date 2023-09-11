@@ -27,17 +27,17 @@ if torch.cuda.is_available():
 
 class StoppingCriteriaSub(transformers.StoppingCriteria):
 
-    def __init__(self, stops=[], stop_strings=[], preprompt_length=0, encounters=1):
+    def __init__(self, stops=[], stop_strings=[], prompt_length=0, encounters=1):
         super().__init__()
         self.stops = [stop.to("cuda:0") for stop in stops]
         self.stop_strings = stop_strings
-        self.preprompt_length = preprompt_length
+        self.prompt_length = prompt_length
 
         print(self.stops)
 
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
         #print(input_ids)
-        output = tokenizer.decode(input_ids[0][self.preprompt_length:])
+        output = tokenizer.decode(input_ids[0][self.prompt_length:])
         print(output)
         for stop in self.stop_strings:
             if stop in output:
@@ -53,7 +53,7 @@ class StoppingCriteriaSub(transformers.StoppingCriteria):
 
 stop_words = ["pooh:"]
 stop_words_ids = [tokenizer(stop_word, return_tensors='pt')['input_ids'].squeeze()[1:] for stop_word in stop_words]
-stopping_criteria_list = transformers.StoppingCriteriaList([StoppingCriteriaSub(stops=stop_words_ids, stop_strings=stop_words, preprompt_length=tokenized.input_ids.shape[1])])
+stopping_criteria_list = transformers.StoppingCriteriaList([StoppingCriteriaSub(stops=stop_words_ids, stop_strings=stop_words, prompt_length=tokenized.input_ids.shape[1])])
 
 token = model.generate(**tokenized,
                        max_new_tokens=100,
@@ -63,5 +63,8 @@ token = model.generate(**tokenized,
                        early_stopping=True)
 
 output = tokenizer.batch_decode(token[:, tokenized.input_ids.shape[1]:])[0]
+for word in stop_words:
+    output = output.replace(word, "")
+output = output.strip()
 
 print(output)

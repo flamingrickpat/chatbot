@@ -1,18 +1,26 @@
 import os
 from typing import Dict, List, Any, Tuple
 import time
+import logging
 
 import torch
 from peft import PeftModel
-from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizerFast
+from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizerFast, StoppingCriteriaList
 
 from chatbot.global_state import GlobalState
 from chatbot.exceptions import *
+from chatbot.model_utils import StoppingCriteriaSub
+
+logger = logging.getLogger('model_manager')
 
 class ModelManager():
     def __init__(self):
         self.tokenizer = None
         self.model = None
+
+        self.telegram_chat_id = 0
+        self.telegram_message_id = 0
+        self.telegram_context = None
 
         self.gs = GlobalState()
         self.device = self.gs.config["device"]
@@ -37,7 +45,8 @@ class ModelManager():
             model_path,
             torch_dtype=torch.bfloat16,
             local_files_only=True,
-            device_map=self.device
+            device_map=self.device,
+            early_stopping=True
         )
 
     def get_token_count(self, prompt: str) -> int:
@@ -55,19 +64,25 @@ class ModelManager():
         :param stop_word:
         :return:
         """
-        inputs = self.tokenizer.encode(
-            prompt,
-            return_tensors="pt"
-        ).to(self.device)
+        tokenized = self.tokenizer(prompt, return_tensors="pt").to('cuda:0')
 
-        outputs = self.model.generate(
-            inputs,
-            max_new_tokens=256,
-        )
+        stop_words = [stop_word]
+        stop_words_ids = [self.tokenizer(stop_word, return_tensors='pt')['input_ids'].squeeze()[1:] for stop_word in
+                          stop_words]
+        stopping_criteria_list = StoppingCriteriaList([StoppingCriteriaSub(stop_strings=stop_words,
+                                                                           prompt_length=tokenized.input_ids.shape[1],
+                                                                           tokenizer=self.tokenizer)])
 
-        output_str = self.tokenizer.decode(outputs[0])
-        return output_str
+        token = self.model.generate(**tokenized,
+                                    max_new_tokens=100,
+                                    do_sample=True,
+                                    eos_token_id=[],
+                                    stopping_criteria=stopping_criteria_list,
+                                    early_stopping=True)
 
+        output = self.tokenizer.batch_decode(token[:, tokenized.input_ids.shape[1]:])[0]
+        output = output.strip()
+        output = output.encode('ascii', 'ignore').decode('ascii')
+        logger.info(f"New output: {output}")
 
-
-
+        return output

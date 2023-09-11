@@ -141,11 +141,26 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
             gs.message_manager.insert_message(is_user=True, message=text)
 
-            db_id, response = gs.message_manager.get_response()
-            msg = await update.message.reply_text(response)
+            # Post message that is later edited
+            msg = await update.message.reply_text("Thinking...")
             chat_id = msg.chat_id
             message_id = msg.message_id
+
+            # Set parameters for live chat update
+            gs.model_manager.telegram_chat_id = chat_id
+            gs.model_manager.telegram_message_id = message_id
+            gs.model_manager.telegram_context = context
+
+            # Get response
+            db_id, response = gs.message_manager.get_response()
             gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
+
+            # Final edit
+            await context.bot.editMessageText(
+                chat_id=chat_id,
+                message_id=message_id,
+                text=response
+            )
 
             return
 
