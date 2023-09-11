@@ -128,7 +128,12 @@ class MessageManager():
         :return: tuple of id of new response in database and text
         """
         prompt = self.get_prompt()
-        tmp = prompt.replace("\n", "\\n").encode('ascii', 'ignore').decode('ascii')
+
+        prompt_path = self.gs.config["prompt_path"]
+        with open(prompt_path, 'w', encoding='utf-8') as f:
+            f.write(prompt)
+
+        tmp = prompt.encode('ascii', 'ignore').decode('ascii')
         logger.info("New prompt: " + tmp)
 
         text = ""
@@ -147,15 +152,18 @@ class MessageManager():
                 while True:
                     text = self.call_model(prompt)
                     user_name = self.gs.config["user_name"]
-                    if f"{user_name}:" in text:
-                        text = text.replace(f"{user_name}:", "").strip()
+                    if f"{user_name}:" in text or "</s>" in text:
+                        text = text.replace(f"{user_name}:", "").replace("</s>", "").strip()
                         break
 
                 # Clean up and insert into db!
                 if text != "":
                     #text = text.replace(f"{self.current_character_name}:", "").strip()
                     user_name = self.gs.config["user_name"]
-                    text = text.replace(f"{user_name}:", "").strip()
+                    text = text.replace(f"{user_name}:", "")
+                    text = text.replace("### Input:", "")
+                    text = text.replace("### Response:", "")
+                    text = text.strip()
                     db_id = self.insert_message(is_user=False, message=text)
                     break
             except Exception as e:
@@ -180,6 +188,12 @@ class MessageManager():
         Generate current prompt with intro and messages to fit inside context size.
         """
 
+        str_input = "\n\n### Input:\n"
+        str_response = "\n\n### Response:\n"
+
+        tokens_input = self.gs.model_manager.get_token_count(str_input)
+        tokens_response = self.gs.model_manager.get_token_count(str_response)
+
         # Set current tokens to context size
         tokens_current = self.gs.config["context_size"]
         new_prompt = ""
@@ -187,7 +201,7 @@ class MessageManager():
         # Add character card to prompt
         res = self.cur.execute("SELECT * FROM characters where id = ?", (self.current_character_id,))
         res = res.fetchall()
-        card = res[0]["card"]
+        card = res[0]["card"].replace("\r", "")
         token_count = res[0]["token_count"]
         tokens_current -= token_count
 
@@ -200,22 +214,31 @@ class MessageManager():
         res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
         res = res.fetchall()
         for i in range(len(res) - 1, -1, -1):
-            message = res[i]["message"].strip()
+            is_user = res[i]["is_user"]
+            message = res[i]["message"]
             character = res[i]["character"]
             token_count = res[i]["token_count"] + 1  # + 1 for newline
-            msg = character + ": " + message
+
+            msg = ""
+            if is_user:
+                msg = msg + str_input
+                tokens_current -= tokens_input
+            else:
+                msg = msg + str_response
+                tokens_current -= tokens_response
+            msg = msg + character + ": " + message
 
             tokens_current -= token_count
-            if tokens_current > 0:
+            if tokens_current > 100:
                 messages_within_context.append(msg)
             else:
                 break
 
         for msg in reversed(messages_within_context):
-            new_prompt = new_prompt + msg.strip() + "\n"
+            new_prompt = new_prompt + msg
 
-        # Add character name to prompt
-        new_prompt = new_prompt + f"{self.current_character_name}: "
+        # Add instruction and character name to prompt
+        new_prompt = new_prompt + "\n\n### Response:\n" + f"{self.current_character_name}: "
 
         # Check final length
         final_length = self.gs.model_manager.get_token_count(new_prompt)

@@ -141,27 +141,35 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
             gs.message_manager.insert_message(is_user=True, message=text)
 
-            # Post message that is later edited
-            msg = await update.message.reply_text("Thinking...")
-            chat_id = msg.chat_id
-            message_id = msg.message_id
+            if False:
+                # Post message that is later edited
+                msg = await update.message.reply_text("Thinking...")
+                chat_id = msg.chat_id
+                message_id = msg.message_id
 
-            # Set parameters for live chat update
-            gs.telegram_chat_id = chat_id
-            gs.telegram_message_id = message_id
+                # Set parameters for live chat update
+                gs.telegram_chat_id = chat_id
+                gs.telegram_message_id = message_id
 
-            # Get response
-            db_id, response = gs.message_manager.get_response()
-            gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
+                # Get response
+                db_id, response = gs.message_manager.get_response()
+                gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
 
-            await asyncio.sleep(1)
+                await asyncio.sleep(1)
 
-            # Final edit
-            await context.bot.editMessageText(
-                chat_id=chat_id,
-                message_id=message_id,
-                text=response
-            )
+                # Final edit
+                await context.bot.editMessageText(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    text=response
+                )
+            else:
+                db_id, response = gs.message_manager.get_response()
+                msg = await update.message.reply_text(response)
+
+                chat_id = msg.chat_id
+                message_id = msg.message_id
+                gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
 
             return
 

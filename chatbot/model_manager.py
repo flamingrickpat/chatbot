@@ -81,7 +81,10 @@ class ModelManager():
         output = self.tokenizer.decode(token[0][tokenized.input_ids.shape[1]:])
         output = output.strip()
 
-        tmp = output.replace("\n", "\\n").encode('ascii', 'ignore').decode('ascii')
+        tmp = output.encode('ascii', 'ignore').decode('ascii')
         logger.info(f"New output: {tmp}")
+
+        # Remove emojis
+        output = output.encode('ascii', 'ignore').decode('ascii').strip()
 
         return output

@@ -29,6 +29,11 @@ config_schema = \
                 "description": "path to database",
                 "default": "./database/database.db"
             },
+            "prompt_path": {
+                "type": "string",
+                "description": "path to latest promps for debugging",
+                "default": "./logs/latest_prompt.txt"
+            },
             "log_level": {
                 "type": "string",
                 "description": "minimum importance to show log line",
