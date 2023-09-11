@@ -40,6 +40,9 @@ def main(args: List[str]) -> None:
     model_manager = ModelManager()
     gs.model_manager = model_manager
 
+    gs.telegram_chat_id = 0
+    gs.telegram_message_id = 0
+
     setup_logging_config(config, "logs/chatbot.log")
 
     logging.getLogger("httpx").setLevel(logging.WARNING)

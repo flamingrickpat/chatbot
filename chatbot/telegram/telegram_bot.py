@@ -147,13 +147,14 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             message_id = msg.message_id
 
             # Set parameters for live chat update
-            gs.model_manager.telegram_chat_id = chat_id
-            gs.model_manager.telegram_message_id = message_id
-            gs.model_manager.telegram_context = context
+            gs.telegram_chat_id = chat_id
+            gs.telegram_message_id = message_id
 
             # Get response
             db_id, response = gs.message_manager.get_response()
             gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
+
+            await asyncio.sleep(1)
 
             # Final edit
             await context.bot.editMessageText(

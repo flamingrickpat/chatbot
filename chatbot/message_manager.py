@@ -128,7 +128,8 @@ class MessageManager():
         :return: tuple of id of new response in database and text
         """
         prompt = self.get_prompt()
-        logger.info("New prompt: " + prompt.replace("\n", "\\n"))
+        tmp = prompt.replace("\n", "\\n").encode('ascii', 'ignore').decode('ascii')
+        logger.info("New prompt: " + tmp)
 
         text = ""
         db_id = 0
@@ -152,7 +153,7 @@ class MessageManager():
 
                 # Clean up and insert into db!
                 if text != "":
-                    text = text.replace(f"{self.current_character_name}:", "").strip()
+                    #text = text.replace(f"{self.current_character_name}:", "").strip()
                     user_name = self.gs.config["user_name"]
                     text = text.replace(f"{user_name}:", "").strip()
                     db_id = self.insert_message(is_user=False, message=text)

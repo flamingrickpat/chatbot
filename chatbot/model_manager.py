@@ -67,22 +67,21 @@ class ModelManager():
         tokenized = self.tokenizer(prompt, return_tensors="pt").to('cuda:0')
 
         stop_words = [stop_word]
-        stop_words_ids = [self.tokenizer(stop_word, return_tensors='pt')['input_ids'].squeeze()[1:] for stop_word in
-                          stop_words]
         stopping_criteria_list = StoppingCriteriaList([StoppingCriteriaSub(stop_strings=stop_words,
                                                                            prompt_length=tokenized.input_ids.shape[1],
                                                                            tokenizer=self.tokenizer)])
 
         token = self.model.generate(**tokenized,
-                                    max_new_tokens=100,
+                                    max_new_tokens=250,
                                     do_sample=True,
-                                    eos_token_id=[],
+                                    #eos_token_id=[],
                                     stopping_criteria=stopping_criteria_list,
                                     early_stopping=True)
 
-        output = self.tokenizer.batch_decode(token[:, tokenized.input_ids.shape[1]:])[0]
+        output = self.tokenizer.decode(token[0][tokenized.input_ids.shape[1]:])
         output = output.strip()
-        output = output.encode('ascii', 'ignore').decode('ascii')
-        logger.info(f"New output: {output}")
+
+        tmp = output.replace("\n", "\\n").encode('ascii', 'ignore').decode('ascii')
+        logger.info(f"New output: {tmp}")
 
         return output

@@ -24,8 +24,8 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 
 
-model = PeftModel.from_pretrained(model, adapters_name)
-model = model.merge_and_unload()
+#model = PeftModel.from_pretrained(model, adapters_name)
+#model = model.merge_and_unload()
 
 print(f"Successfully loaded the model {model_name} into memory")
 
