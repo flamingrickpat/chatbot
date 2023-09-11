@@ -1,6 +1,7 @@
 import sqlite3
 import os
 from typing import Dict, List, Any, Tuple
+from datetime import datetime, timezone
 
 from chatbot.global_state import GlobalState
 from chatbot.exceptions import *
@@ -96,3 +97,17 @@ class MessageManager():
         self.con.commit()
 
         return self.current_character_name, token_count
+
+    def insert_message(self, is_user: bool, message: str) -> None:
+        if is_user:
+            character = self.gs.config["user_name"]
+        else:
+            character = self.current_character_name
+
+        token_count = self.gs.model_manager.get_token_count(message)
+        send_date = datetime.now(timezone.utc)
+        self.cur.execute("INSERT INTO messages (character_id, is_user, character, message, time, token_count) VALUES(?, ?, ?, ?, ?, ?)",
+                    (self.current_character_id, is_user, character, message, send_date, token_count))
+        self.con.commit()
+
+        #summarizer.last_message_summarizer()
