@@ -5,7 +5,7 @@ config_schema = \
         "title": "chatbot",
         "description": "chatbot configuration file",
         "type": "object",
-        "required": ["user_name", "context_size", "telegram", "tokenizer_path"],
+        "required": ["user_name", "context_size", "telegram", "tokenizer_path", "model_path", "device"],
         "properties": {
             "telegram": {
                 "$ref": "#/$defs/telegram",
@@ -18,6 +18,11 @@ config_schema = \
             "context_size": {
                 "type": "integer",
                 "description": "how long prompts should be",
+            },
+            "device": {
+                "type": "string",
+                "description": "what device to run model on",
+                "enum": ["cpu", "cuda:0"]
             },
             "database_path": {
                 "type": "string",
@@ -38,6 +43,10 @@ config_schema = \
             "tokenizer_path": {
                 "type": "string",
                 "description": "path to tokenizer. should be a folder with tokenizer.json",
+            },
+            "model_path": {
+                "type": "string",
+                "description": "path to model. should be a folder with .bin files",
             }
 
         },
