@@ -95,6 +95,7 @@ async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         except Exception as e:
             await update.message.reply_text("Error: " + str(e))
 
+
 async def select_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Delete a character."""
 
@@ -123,6 +124,26 @@ async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await update.message.reply_text("Send the new character card with the next message!")
         else:
             await update.message.reply_text("Please select a character first!")
+
+async def regenerate_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Regenerate last message."""
+
+    if check_user(update.effective_user.id):
+        gs = GlobalState()
+        try:
+            db_id, chat_id, message_id, new_response = gs.message_manager.regenerate()
+            gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
+
+            if message_id > 0:
+                await context.bot.editMessageText(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    text=new_response
+                )
+            else:
+                await update.message.reply_text("No messages found!")
+        except CharacterDoesntExistsException as e:
+            await update.message.reply_text("Character doesn't exists!")
 
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -223,6 +244,7 @@ def run_telegram_bot() -> None:
     application.add_handler(CommandHandler("delete", delete_command))
     application.add_handler(CommandHandler("select", select_command))
     application.add_handler(CommandHandler("card", card_command))
+    application.add_handler(CommandHandler("regenerate", regenerate_command))
 
     application.add_handler(CallbackQueryHandler(InlineKeyboardHandler))
     # application.add_handler(CommandHandler('request_button', menu))

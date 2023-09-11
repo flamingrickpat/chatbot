@@ -122,6 +122,33 @@ class MessageManager():
 
         return self.cur.lastrowid
 
+
+    def regenerate(self) -> (int, int, str):
+        """
+        Regenerate last message.
+        First get the chat_id and message_id from the database, then delete the row.
+        Call get_response to regenerate it and return it.
+        :return: tuple with chat_id, message_id and new response
+        """
+
+        sql = "select * from messages where character_id = ? and is_user = 0 order by id desc limit 1"
+        res = self.cur.execute(sql, (self.current_character_id,)).fetchall()
+        if len(res) > 0:
+            id = res[0]["id"]
+            telegram_chat_id = res[0]["telegram_chat_id"]
+            telegram_message_id = res[0]["telegram_message_id"]
+
+            sql = "delete from messages where id = ?"
+            self.cur.execute(sql, (id,))
+            self.con.commit()
+
+            db_id, new_prompt = self.get_response()
+            return db_id, telegram_chat_id, telegram_message_id, new_prompt
+        else:
+            raise CharacterDoesntExistsException()
+
+
+
     def get_response(self) -> (int, str):
         """
         Generate a prompt, send it to model and parse response. Save response in database.
