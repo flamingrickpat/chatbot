@@ -50,7 +50,7 @@ def main(args: List[str]) -> None:
     chroma = ChromaManager()
     gs.chroma_manager = chroma
 
-    # Make new chroma db on startup 
+    # Make new chroma db on startup
     gs.message_manager.generate_missing_chroma_entries()
 
     gs.telegram_chat_id = 0

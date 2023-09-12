@@ -84,6 +84,16 @@ config_schema = \
                 "type": "string",
                 "description": "custom embedder",
                 "default": ""
+            },
+            "memory_summary_length": {
+                "type": "integer",
+                "description": "max token allowance for memories in summary form",
+                "default": 500
+            },
+            "memory_message_length": {
+                "type": "integer",
+                "description": "max token allowance for memories in message form",
+                "default": 500
             }
         },
 

@@ -53,7 +53,7 @@ class ChromaManager:
             collection = self.col_summaries
 
         collection.delete(
-            ids=[id]
+            ids=[f"{id}"]
         )
 
     def clear(self, is_message: bool) -> None:
@@ -76,14 +76,17 @@ class ChromaManager:
         )
         return results
 
-    def cut_results_to_desired_length(self, results, max_token_length: int) -> str:
+    def cut_results_to_desired_length(self, results, max_token_length: int, add_newline: bool = False) -> str:
         res = ""
         tmp = max_token_length
         for i in range(len(results['ids'][0])):
             tc = results['metadatas'][0][i]["token_count"]
             if (tmp - tc) > 0:
                 tmp -= tc
-                res = res + results['documents'][0][i] + "\n"
+                if add_newline:
+                    res = res + results['documents'][0][i] + "\n"
+                else:
+                    res = res + results['documents'][0][i] + " "
             else:
                 break
 

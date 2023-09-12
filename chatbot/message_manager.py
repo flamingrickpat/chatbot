@@ -241,16 +241,29 @@ class MessageManager():
 
         # Set current tokens to context size
         tokens_current = self.gs.config["context_size"]
-        new_prompt = ""
 
         # Add character card to prompt
         res = self.cur.execute("SELECT * FROM characters where id = ?", (self.current_character_id,))
         res = res.fetchall()
         card = res[0]["card"].replace("\r", "")
         token_count = res[0]["token_count"]
-        tokens_current -= token_count
 
-        new_prompt = new_prompt + card + "\n"
+        # Insert summaries to cards scenario section
+        if "###SUMMARIES###" in card:
+            summaries = self.get_relevant_summaries()
+            card = card.replace("###SUMMARIES###", summaries)
+
+        # Insert relevant messages to cards scenario section
+        if "###MESSAGES###" in card:
+            messages = self.get_relevant_messages()
+            card = card.replace("###MESSAGES###", messages)
+
+        # Add card to prompt
+        new_prompt = card
+
+        # Recalculate token count to be safe
+        token_count = self.gs.model_manager.get_token_count(new_prompt)
+        tokens_current -= token_count
 
         # Add messages to prompt
         messages_within_context = []
@@ -287,6 +300,7 @@ class MessageManager():
 
         # Check final length
         final_length = self.gs.model_manager.get_token_count(new_prompt)
+        logger.info("New prompt length: " + str(final_length))
         assert (final_length <= self.gs.config["context_size"])
 
         return new_prompt
@@ -367,3 +381,43 @@ class MessageManager():
             self.gs.chroma_manager.insert(is_message=False, id=id, character_id=character_id,
                                           is_user=is_user, text=summary,
                                           token_count=token_count)
+
+
+    def get_relevant_summaries(self) -> str:
+        """
+        Get latest summary and load similar summaries from chroma to append to scenario.
+        """
+        max_token_length = self.gs.config["memory_summary_length"]
+
+        sql = "select * from summaries where character_id = ? order by id desc limit 1"
+        res = self.cur.execute(sql, (self.current_character_id,))
+        res = res.fetchall()
+        if len(res) > 0:
+            summary = res[0]["summary"]
+
+            results = self.gs.chroma_manager.get_results(is_message=False, character_id=self.current_character_id,
+                                                 text=summary, count=100)
+            result = self.gs.chroma_manager.cut_results_to_desired_length(results, max_token_length=max_token_length)
+            return result.strip()
+        else:
+            return "Default scenario."
+
+    def get_relevant_messages(self) -> str:
+        """
+        Get latest summary and load similar messages from chroma to append to scenario.
+        """
+        max_token_length = self.gs.config["memory_message_length"]
+
+        sql = "select * from summaries where character_id = ? order by id desc limit 1"
+        res = self.cur.execute(sql, (self.current_character_id,))
+        res = res.fetchall()
+        if len(res) > 0:
+            summary = res[0]["summary"]
+
+            results = self.gs.chroma_manager.get_results(is_message=True, character_id=self.current_character_id,
+                                                 text=summary, count=100)
+            result = self.gs.chroma_manager.cut_results_to_desired_length(results, max_token_length=max_token_length,
+                                                                          add_newline=True)
+            return result.strip()
+        else:
+            return "No relevant messages!"
