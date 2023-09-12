@@ -14,6 +14,7 @@ from chatbot.constants import *
 from chatbot.message_manager import MessageManager
 from chatbot.model_manager import ModelManager
 from chatbot.global_state import GlobalState
+from chatbot.summary import SummaryOpenai
 
 logger = logging.getLogger('chatbot')
 
@@ -33,6 +34,11 @@ def main(args: List[str]) -> None:
     config_path = args.config
     config = get_config(config_path)
     gs.config = config
+
+    if config["summarizer"] == "openai":
+        summarizer = SummaryOpenai()
+        summarizer.init_summarizer()
+        gs.summarizer = summarizer
 
     message_manager = MessageManager()
     gs.message_manager = message_manager

@@ -5,7 +5,8 @@ config_schema = \
         "title": "chatbot",
         "description": "chatbot configuration file",
         "type": "object",
-        "required": ["user_name", "context_size", "telegram", "tokenizer_path", "model_path", "device"],
+        "required": ["user_name", "context_size", "telegram", "tokenizer_path", "model_path", "device", "summarizer",
+                     "summarizer_message_count"],
         "properties": {
             "telegram": {
                 "$ref": "#/$defs/telegram",
@@ -52,8 +53,28 @@ config_schema = \
             "model_path": {
                 "type": "string",
                 "description": "path to model. should be a folder with .bin files",
-            }
-
+            },
+            "summarizer": {
+                "type": "string",
+                "description": "what summarizer should be used?",
+                "enum": ["openai", "bart", "api_endpoint"]
+            },
+            "openai_api_key": {
+                "type": "string",
+                "description": "api key for openai, to use gpt3.5 as summarizer",
+            },
+            "bart_model": {
+                "type": "string",
+                "description": "path to bart model as summarizer",
+            },
+            "api_endpoint": {
+                "type": "string",
+                "description": "ip and port of koboldcpp or similar to use as summarizer",
+            },
+            "summarizer_message_count": {
+                "type": "integer",
+                "description": "how many of the previous messages should be summarized",
+            },
         },
 
         "$defs": {

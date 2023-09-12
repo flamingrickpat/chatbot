@@ -9,6 +9,7 @@ from chatbot.exceptions import *
 
 logger = logging.getLogger('message_manager')
 
+
 class MessageManager():
     def __init__(self):
         self.gs = GlobalState()
@@ -19,7 +20,6 @@ class MessageManager():
         self.current_character_name = ""
 
         self.init_database()
-
 
     def init_database(self) -> None:
         """
@@ -62,7 +62,6 @@ class MessageManager():
             self.con.commit()
         else:
             raise CharacterAlreadyExistsException()
-
 
     def delete_character(self, name: str) -> None:
         """
@@ -116,20 +115,31 @@ class MessageManager():
 
         token_count = self.gs.model_manager.get_token_count(character + ": " + message)
         send_date = datetime.now(timezone.utc)
-        self.cur.execute("INSERT INTO messages (character_id, is_user, character, message, time, token_count) VALUES(?, ?, ?, ?, ?, ?)",
-                    (self.current_character_id, is_user, character, message, send_date, token_count))
+        self.cur.execute(
+            "INSERT INTO messages (character_id, is_user, character, message, time, token_count) VALUES(?, ?, ?, ?, ?, ?)",
+            (self.current_character_id, is_user, character, message, send_date, token_count))
         self.con.commit()
+        id = self.cur.lastrowid
 
-        return self.cur.lastrowid
+        self.summarize_last_messages()
 
+        return id
 
     def regenerate(self) -> (int, int, str):
         """
         Regenerate last message.
+        Delete latest summary.
         First get the chat_id and message_id from the database, then delete the row.
         Call get_response to regenerate it and return it.
         :return: tuple with chat_id, message_id and new response
         """
+        sql = "select * from summaries where character_id = ? order by id desc limit 1"
+        res = self.cur.execute(sql, (self.current_character_id,)).fetchall()
+        if len(res) > 0:
+            id = res[0]["id"]
+            sql = "delete from summaries where id = ?"
+            self.cur.execute(sql, (id,))
+            self.con.commit()
 
         sql = "select * from messages where character_id = ? and is_user = 0 order by id desc limit 1"
         res = self.cur.execute(sql, (self.current_character_id,)).fetchall()
@@ -146,8 +156,6 @@ class MessageManager():
             return db_id, telegram_chat_id, telegram_message_id, new_prompt
         else:
             raise CharacterDoesntExistsException()
-
-
 
     def get_response(self) -> (int, str):
         """
@@ -185,7 +193,7 @@ class MessageManager():
 
                 # Clean up and insert into db!
                 if text != "":
-                    #text = text.replace(f"{self.current_character_name}:", "").strip()
+                    # text = text.replace(f"{self.current_character_name}:", "").strip()
                     user_name = self.gs.config["user_name"]
                     text = text.replace(f"{user_name}:", "")
                     text = text.replace("### Input:", "")
@@ -269,7 +277,7 @@ class MessageManager():
 
         # Check final length
         final_length = self.gs.model_manager.get_token_count(new_prompt)
-        assert(final_length <= self.gs.config["context_size"])
+        assert (final_length <= self.gs.config["context_size"])
 
         return new_prompt
 
@@ -281,3 +289,33 @@ class MessageManager():
         """
         user_name = self.gs.config["user_name"]
         return self.gs.model_manager.get_message(prompt, stop_word=f"{user_name}:")
+
+    def summarize_last_messages(self) -> None:
+        """
+        Call summarizer, summarize last x messages and write it to summaries table.
+        """
+        res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
+        res = res.fetchall()
+
+        text = ""
+
+        in_window = res[max(0, len(res) - self.gs.config["summarizer_message_count"]):]
+        ids = []
+        for msg in in_window:
+            ids.append(msg["id"])
+            text = text + msg["character"] + ": " + msg["message"] + "\n"
+
+        summary = self.gs.summarizer.summarize_text(text)
+        token_count = self.gs.model_manager.get_token_count(summary)
+
+        send_date = datetime.now(timezone.utc)
+        self.cur.execute("INSERT INTO summaries (character_id, summary, time, token_count) VALUES(?, ?, ?, ?)",
+                         (self.current_character_id, summary, send_date, token_count))
+        self.con.commit()
+        inserted_id = self.cur.lastrowid
+
+        # Insert relation to messages
+        for msg_id in ids:
+            self.cur.execute("INSERT INTO summaries_messages (message_id, summary_id) VALUES(?, ?)",
+                             (msg_id, inserted_id))
+            self.con.commit()
