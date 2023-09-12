@@ -288,7 +288,7 @@ class MessageManager():
         :return:
         """
         user_name = self.gs.config["user_name"]
-        return self.gs.model_manager.get_message(prompt, stop_word=f"{user_name}:")
+        return self.gs.model_manager.get_message(prompt, stop_words=[f"{user_name}:", "\n"])
 
     def summarize_last_messages(self) -> None:
         """

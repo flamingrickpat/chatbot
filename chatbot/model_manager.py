@@ -57,7 +57,7 @@ class ModelManager():
         )
         return inputs.shape[1] + 1
 
-    def get_message(self, prompt: str, stop_word: str) -> str:
+    def get_message(self, prompt: str, stop_words: [str]) -> str:
         """
         Get output from prompt.
         :param prompt:
@@ -66,7 +66,6 @@ class ModelManager():
         """
         tokenized = self.tokenizer(prompt, return_tensors="pt").to('cuda:0')
 
-        stop_words = [stop_word]
         stopping_criteria_list = StoppingCriteriaList([StoppingCriteriaSub(stop_strings=stop_words,
                                                                            prompt_length=tokenized.input_ids.shape[1],
                                                                            tokenizer=self.tokenizer)])
