@@ -9,6 +9,7 @@ __pycache__/
 config.json
 database/
 models/
+test/
 logs/latest_prompt.txt
 
 # Distribution / packaging
