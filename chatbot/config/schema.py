@@ -75,6 +75,16 @@ config_schema = \
                 "type": "integer",
                 "description": "how many of the previous messages should be summarized",
             },
+            "chromadb_path": {
+                "type": "string",
+                "description": "path to chroma db embeddings",
+                "default": "./database/chroma/"
+            },
+            "chromadb_embedder": {
+                "type": "string",
+                "description": "custom embedder",
+                "default": ""
+            }
         },
 
         "$defs": {

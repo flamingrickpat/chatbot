@@ -15,6 +15,7 @@ from chatbot.message_manager import MessageManager
 from chatbot.model_manager import ModelManager
 from chatbot.global_state import GlobalState
 from chatbot.summary import SummaryOpenai
+from chatbot.chroma_manager import ChromaManager
 
 logger = logging.getLogger('chatbot')
 
@@ -45,6 +46,12 @@ def main(args: List[str]) -> None:
 
     model_manager = ModelManager()
     gs.model_manager = model_manager
+
+    chroma = ChromaManager()
+    gs.chroma_manager = chroma
+
+    # Make new chroma db on startup 
+    gs.message_manager.generate_missing_chroma_entries()
 
     gs.telegram_chat_id = 0
     gs.telegram_message_id = 0

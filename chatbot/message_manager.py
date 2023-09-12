@@ -9,7 +9,6 @@ from chatbot.exceptions import *
 
 logger = logging.getLogger('message_manager')
 
-
 class MessageManager():
     def __init__(self):
         self.gs = GlobalState()
@@ -24,6 +23,7 @@ class MessageManager():
     def init_database(self) -> None:
         """
         Open database if it exists, otherwise create it.
+        Same with chroma.
         """
         path = self.gs.config["database_path"]
         if os.path.exists(path):
@@ -113,7 +113,8 @@ class MessageManager():
         else:
             character = self.current_character_name
 
-        token_count = self.gs.model_manager.get_token_count(character + ": " + message)
+        full_message = character + ": " + message
+        token_count = self.gs.model_manager.get_token_count(full_message) + 1
         send_date = datetime.now(timezone.utc)
         self.cur.execute(
             "INSERT INTO messages (character_id, is_user, character, message, time, token_count) VALUES(?, ?, ?, ?, ?, ?)",
@@ -121,6 +122,11 @@ class MessageManager():
         self.con.commit()
         id = self.cur.lastrowid
 
+        # insert into chroma db
+        self.gs.chroma_manager.insert(is_message=True, id=id, character_id=self.current_character_id,
+                                      is_user=is_user, text=full_message, token_count=token_count)
+
+        # create new summary
         self.summarize_last_messages()
 
         return id
@@ -141,6 +147,8 @@ class MessageManager():
             self.cur.execute(sql, (id,))
             self.con.commit()
 
+            self.gs.chroma_manager.delete(is_message=False, id=id)
+
         sql = "select * from messages where character_id = ? and is_user = 0 order by id desc limit 1"
         res = self.cur.execute(sql, (self.current_character_id,)).fetchall()
         if len(res) > 0:
@@ -151,6 +159,8 @@ class MessageManager():
             sql = "delete from messages where id = ?"
             self.cur.execute(sql, (id,))
             self.con.commit()
+
+            self.gs.chroma_manager.delete(is_message=True, id=id)
 
             db_id, new_prompt = self.get_response()
             return db_id, telegram_chat_id, telegram_message_id, new_prompt
@@ -314,8 +324,46 @@ class MessageManager():
         self.con.commit()
         inserted_id = self.cur.lastrowid
 
+        # insert into chroma
+        self.gs.chroma_manager.insert(is_message=False, id=inserted_id, character_id=self.current_character_id,
+                                      is_user=False, text=summary, token_count=token_count)
+
         # Insert relation to messages
         for msg_id in ids:
             self.cur.execute("INSERT INTO summaries_messages (message_id, summary_id) VALUES(?, ?)",
                              (msg_id, inserted_id))
             self.con.commit()
+
+    def generate_missing_chroma_entries(self):
+        self.gs.chroma_manager.clear(is_message=True)
+        self.gs.chroma_manager.clear(is_message=False)
+
+        self.gs.chroma_manager.initialize_chroma()
+
+        res = self.cur.execute("SELECT * FROM messages")
+        res = res.fetchall()
+
+        for i in range(len(res)):
+            id = res[i]["id"]
+            character_id = res[i]["character_id"]
+            is_user = res[i]["is_user"]
+            message = res[i]["message"]
+            character = res[i]["character"]
+            token_count = res[i]["token_count"]
+
+            self.gs.chroma_manager.insert(is_message=True, id=id, character_id=character_id,
+                                          is_user=is_user, text=character + ": " + message,
+                                          token_count=token_count)
+
+        res = self.cur.execute("SELECT * FROM summaries")
+        res = res.fetchall()
+        for i in range(len(res)):
+            id = res[i]["id"]
+            character_id = res[i]["character_id"]
+            is_user = False
+            summary = res[i]["summary"]
+            token_count = res[i]["token_count"]
+
+            self.gs.chroma_manager.insert(is_message=False, id=id, character_id=character_id,
+                                          is_user=is_user, text=summary,
+                                          token_count=token_count)
