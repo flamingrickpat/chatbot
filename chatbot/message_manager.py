@@ -408,14 +408,14 @@ class MessageManager():
         """
         max_token_length = self.gs.config["memory_message_length"]
 
-        sql = "select * from summaries where character_id = ? order by id desc limit 1"
+        sql = "select * from messages where character_id = ? and is_user = 0 order by id desc limit 1"
         res = self.cur.execute(sql, (self.current_character_id,))
         res = res.fetchall()
         if len(res) > 0:
-            summary = res[0]["summary"]
+            message = res[0]["message"]
 
             results = self.gs.chroma_manager.get_results(is_message=True, character_id=self.current_character_id,
-                                                 text=summary, count=100)
+                                                 text=message, count=100)
             result = self.gs.chroma_manager.cut_results_to_desired_length(results, max_token_length=max_token_length,
                                                                           add_newline=True)
             return result.strip()

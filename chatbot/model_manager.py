@@ -74,6 +74,7 @@ class ModelManager():
                                     max_new_tokens=250,
                                     do_sample=True,
                                     temperature=0.9,
+                                    repetition_penalty=1.18,
                                     #eos_token_id=[],
                                     stopping_criteria=stopping_criteria_list,
                                     early_stopping=True)
