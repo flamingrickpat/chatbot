@@ -5,8 +5,8 @@ config_schema = \
         "title": "chatbot",
         "description": "chatbot configuration file",
         "type": "object",
-        "required": ["user_name", "context_size", "telegram", "tokenizer_path", "model_path", "device", "summarizer",
-                     "summarizer_message_count"],
+        "required": ["user_name", "context_size", "telegram", "tokenizer_path", "summarizer",
+                     "summarizer_message_count", "model"],
         "properties": {
             "telegram": {
                 "$ref": "#/$defs/telegram",
@@ -50,10 +50,6 @@ config_schema = \
                 "type": "string",
                 "description": "path to tokenizer. should be a folder with tokenizer.json",
             },
-            "model_path": {
-                "type": "string",
-                "description": "path to model. should be a folder with .bin files",
-            },
             "summarizer": {
                 "type": "string",
                 "description": "what summarizer should be used?",
@@ -94,7 +90,33 @@ config_schema = \
                 "type": "integer",
                 "description": "max token allowance for memories in message form",
                 "default": 500
+            },
+            "model": {
+                "type": "string",
+                "description": "type of model to use in background",
+                "enum": ["hf", "api"]
+            },
+            "hf_model_path": {
+                "type": "string",
+                "description": "path to hf model"
+            },
+            "hf_lora_path": {
+                "type": "string",
+                "description": "path to hf lora if it exists, otherwise blank"
+            },
+            "hf_device": {
+                "type": "string",
+                "description": "what device to use for hf model. can be cpu or cuda:0"
+            },
+            "api_url": {
+                "type": "string",
+                "description": "url for api you're using, can be oobabooga or koboldcpp"
+            },
+            "api_exe": {
+                "type": "string",
+                "description": "path to exe for starting up api"
             }
+
         },
 
         "$defs": {
