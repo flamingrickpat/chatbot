@@ -3,7 +3,7 @@ import transformers
 import torch
 import random
 
-seeds = 56416
+
 preprompt = '''Utachi: hello
 pooh: i am hanging out on discord, how are you?
 Utachi: My name is utachi and I'm so excited to meet you all! I love exploring new things and trying out new hobbies. Do you have any recommendations for what I should try next?
@@ -19,11 +19,11 @@ model = LlamaForCausalLM.from_pretrained(model, local_files_only=True, low_cpu_m
 
 tokenized = tokenizer(preprompt, return_tensors="pt").to('cuda:0')
 
+seeds = 56416
 random.seed(seeds)
 torch.manual_seed(seeds)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(seeds)
-
 
 class StoppingCriteriaSub(transformers.StoppingCriteria):
 

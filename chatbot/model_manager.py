@@ -51,11 +51,10 @@ class ModelManager():
         if model_type == "hf":
             self.model = ModelHf()
         elif model_type == "api":
-            self.model == ModelApi()
+            self.model = ModelApi()
 
     def get_message(self, prompt: str, stop_words: [str]) -> str:
         result = self.model.get_response(prompt, 250, stop_words)
-        logger.info("New output: " + result)
         return result
 
 

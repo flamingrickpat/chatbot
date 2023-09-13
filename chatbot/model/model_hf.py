@@ -1,6 +1,8 @@
 import torch
 from peft import PeftModel
 from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizerFast, StoppingCriteriaList
+import random
+import time
 
 from chatbot.global_state import GlobalState
 from chatbot.model_utils import StoppingCriteriaSub
@@ -42,6 +44,12 @@ class ModelHf(ModelBase):
             self.model = self.model.merge_and_unload()
 
     def get_response(self, prompt: str, max_token_length: int, stop_words: [str]) -> str:
+        seeds = int(time.time() * 1000)
+        random.seed(seeds)
+        torch.manual_seed(seeds)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seeds)
+
         tokenized = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
         stopping_criteria_list = StoppingCriteriaList([StoppingCriteriaSub(stop_strings=stop_words,
@@ -52,7 +60,7 @@ class ModelHf(ModelBase):
                                     max_new_tokens=max_token_length,
                                     do_sample=True,
                                     temperature=0.9,
-                                    repetition_penalty=1.18,
+                                    repetition_penalty=1.1,
                                     # eos_token_id=[],
                                     stopping_criteria=stopping_criteria_list,
                                     early_stopping=True)

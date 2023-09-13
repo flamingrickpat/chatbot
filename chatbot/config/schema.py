@@ -20,6 +20,11 @@ config_schema = \
                 "type": "integer",
                 "description": "how long prompts should be",
             },
+            "max_jaro_distance": {
+                "type": "number",
+                "description": "max jaro distance to prevent model from generating too similar responses",
+                "default": 0.8
+            },
             "device": {
                 "type": "string",
                 "description": "what device to run model on",

@@ -4,6 +4,8 @@ from typing import Dict, List, Any, Tuple
 from datetime import datetime, timezone
 import logging
 
+import jellyfish
+
 from chatbot.global_state import GlobalState
 from chatbot.exceptions import *
 
@@ -167,11 +169,53 @@ class MessageManager():
         else:
             raise CharacterDoesntExistsException()
 
+    def clean_result(self, res: str) -> str:
+        """
+        Remove special tokens and names from result.
+        """
+        un = self.gs.config["user_name"]
+        res = res.replace(f"{un}:", "")
+        res = res.replace(f"{self.current_character_name}:", "")
+        res = res.replace("</s>", "").strip()
+        return res
+
+
+    def check_similarity(self, messages: [str], res) -> bool:
+        """
+        Check jaro distance to other messages from model.
+        :param messages:
+        :param res:
+        :return:
+        """
+        for m in messages:
+            sim = jellyfish.jaro_distance(m, res)
+            if sim > self.gs.config["max_jaro_distance"]:
+                return False
+        return True
+
+    def get_old_messages(self) -> [str]:
+        """
+        Get all messages from model so far.
+        :return:
+        """
+        lst = []
+
+        res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
+        res = res.fetchall()
+        for i in range(len(res) - 1, -1, -1):
+            message = res[i]["message"]
+            lst.append(message)
+
+        return lst
+
+
     def get_response(self) -> (int, str):
         """
         Generate a prompt, send it to model and parse response. Save response in database.
         :return: tuple of id of new response in database and text
         """
+        old_messages = self.get_old_messages()
+
         prompt = self.get_prompt()
 
         prompt_path = self.gs.config["prompt_path"]
@@ -196,10 +240,12 @@ class MessageManager():
                 # Try until character name is in response!
                 while True:
                     text = self.call_model(prompt)
-                    user_name = self.gs.config["user_name"]
-                    if f"{user_name}:" in text or "</s>" in text:
-                        text = text.replace(f"{user_name}:", "").replace("</s>", "").strip()
+                    logger.info("New output: " + text)
+                    if self.check_similarity(old_messages, text):
+                        text = self.clean_result(text)
                         break
+                    else:
+                        logger.info("Too similar!")
 
                 # Clean up and insert into db!
                 if text != "":
