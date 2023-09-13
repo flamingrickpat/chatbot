@@ -131,14 +131,23 @@ async def regenerate_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if check_user(update.effective_user.id):
         gs = GlobalState()
         try:
-            db_id, chat_id, message_id, new_response = gs.message_manager.regenerate()
+            db_id, old_chat_id, old_message_id, new_response = gs.message_manager.regenerate()
+
+            msg = await update.message.reply_text(new_response)
+            chat_id = msg.chat_id
+            message_id = msg.message_id
             gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
 
-            if message_id > 0:
-                await context.bot.editMessageText(
-                    chat_id=chat_id,
-                    message_id=message_id,
-                    text=new_response
+
+            if old_message_id > 0:
+                await context.bot.deleteMessage(
+                    chat_id=old_chat_id,
+                    message_id=old_message_id,
+                    read_timeout=DEFAULT_NONE,
+                    write_timeout=DEFAULT_NONE,
+                    connect_timeout=DEFAULT_NONE,
+                    pool_timeout=DEFAULT_NONE,
+                    api_kwargs=None
                 )
             else:
                 await update.message.reply_text("No messages found!")

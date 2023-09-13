@@ -20,7 +20,8 @@ model = AutoModelForCausalLM.from_pretrained(
     model_name,
     torch_dtype=torch.bfloat16,
     local_files_only=True,
-    device_map=device
+    device_map=device,
+
 )
 
 

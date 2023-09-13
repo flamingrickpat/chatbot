@@ -1,12 +1,15 @@
 import torch
 from peft import PeftModel
-from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizerFast, StoppingCriteriaList
+from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizerFast, \
+    StoppingCriteriaList, BitsAndBytesConfig
 import random
 import time
 
 from chatbot.global_state import GlobalState
 from chatbot.model_utils import StoppingCriteriaSub
 from chatbot.model.model_base import ModelBase
+
+
 
 
 class ModelHf(ModelBase):
@@ -35,12 +38,14 @@ class ModelHf(ModelBase):
             torch_dtype=torch.bfloat16,
             local_files_only=True,
             device_map=self.device,
-            early_stopping=True
+            early_stopping=True,
         )
 
         lora_path = self.gs.config["hf_lora_path"]
         if lora_path != "":
-            self.model = PeftModel.from_pretrained(self.model, self.gs.config["hf_lora_path"], device_map=self.device)
+            self.model = PeftModel.from_pretrained(self.model,
+                                                   self.gs.config["hf_lora_path"],
+                                                   device_map=self.device)
             self.model = self.model.merge_and_unload()
 
     def get_response(self, prompt: str, max_token_length: int, stop_words: [str]) -> str:
