@@ -408,7 +408,7 @@ class MessageManager():
         """
         max_token_length = self.gs.config["memory_message_length"]
 
-        sql = "select * from messages where character_id = ? and is_user = 0 order by id desc limit 1"
+        sql = "select * from messages where character_id = ? and is_user = 1 order by id desc limit 1"
         res = self.cur.execute(sql, (self.current_character_id,))
         res = res.fetchall()
         if len(res) > 0:
