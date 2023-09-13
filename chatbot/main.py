@@ -57,9 +57,13 @@ def main(args: List[str]) -> None:
     gs.telegram_message_id = 0
 
     setup_logging_config(config, "logs/chatbot.log")
-
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     logger.info("Starting Telegram bot...")
     gs.telegram_state = TELEGRAM_STATE_UNINITIALIZED
+
+    if gs.config["autoselect_character"] != "":
+        message_manager.select_character(gs.config["autoselect_character"])
+        gs.telegram_state = TELEGRAM_STATE_CHAT
+
     run_telegram_bot()

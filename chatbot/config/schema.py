@@ -120,7 +120,17 @@ config_schema = \
             "api_exe": {
                 "type": "string",
                 "description": "path to exe for starting up api"
-            }
+            },
+            "autoselect_character": {
+                "type": "string",
+                "description": "the character to select on startup. can be left empty",
+                "default": ""
+            },
+            "greeting_message": {
+                "type": "boolean",
+                "description": "should bot notify in telegram that it is running?",
+                "default": True
+            },
 
         },
 

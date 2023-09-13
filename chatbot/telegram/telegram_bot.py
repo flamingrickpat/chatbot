@@ -227,11 +227,13 @@ def run_telegram_bot() -> None:
     """Start the bot."""
 
     gs = GlobalState()
-    bot = telegram.Bot(token=gs.config["telegram"]["api_key"])
-    for user_id in gs.config["telegram"]["user_whitelist"]:
-        loop = asyncio.get_event_loop()
-        loop.create_task(bot.send_message(chat_id=user_id, text='Chatbot has started up! '
-                                                                'Please select a character to start chatting!'))
+
+    if gs.config["greeting_message"]:
+        bot = telegram.Bot(token=gs.config["telegram"]["api_key"])
+        for user_id in gs.config["telegram"]["user_whitelist"]:
+            loop = asyncio.get_event_loop()
+            loop.create_task(bot.send_message(chat_id=user_id, text='Chatbot has started up! '
+                                                                    'Please select a character to start chatting!'))
 
     # Create the Application and pass it your bot's token.
     application = Application.builder().token(gs.config["telegram"]["api_key"]).build()
