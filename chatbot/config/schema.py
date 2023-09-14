@@ -99,7 +99,7 @@ config_schema = \
             "model": {
                 "type": "string",
                 "description": "type of model to use in background",
-                "enum": ["hf", "api"]
+                "enum": ["gguf", "hf", "api"]
             },
             "hf_model_path": {
                 "type": "string",
@@ -150,8 +150,23 @@ config_schema = \
                 "type": "boolean",
                 "description": "stream parts of messages to telegram",
                 "default": False
+            },
+            "gguf_quantization": {
+                "type": "string",
+                "description": "quantization level for gguf creation",
+                "default": "q8_0",
+                "enum": ["f32", "f16", "q8_0"]
+            },
+            "model_path": {
+                "type": "string",
+                "description": "folder to store finetuned models and temporary files in",
+                "default": "./models/"
+            },
+            "gguf_gpu_layers": {
+                "type": "integer",
+                "description": "how many gpu layers should be loaded by llama.cpp",
+                "default": 128
             }
-
         },
 
         "$defs": {

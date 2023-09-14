@@ -88,6 +88,8 @@ class MessageManager():
             id = res[0]["id"]
             self.current_character_id = id
             self.current_character_name = res[0]["name"]
+
+            self.gs.model_manager.reload_model(id)
         else:
             raise CharacterDoesntExistsException()
 

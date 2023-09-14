@@ -145,8 +145,5 @@ class ModelHf(ModelBase):
         output = self.tokenizer.decode(token[0][tokenized.input_ids.shape[1]:])
         output = output.strip()
 
-        # Remove emojis
-        output = output.strip()
-
         return output
 
