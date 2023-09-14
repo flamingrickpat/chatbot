@@ -240,7 +240,7 @@ class MessageManager():
                 # Try until character name is in response!
                 while True:
                     text = self.call_model(prompt)
-                    logger.info("New output: " + text)
+                    logger.info("New output: " + text.encode('ascii', 'ignore').decode('ascii'))
                     if self.check_similarity(old_messages, text):
                         text = self.clean_result(text)
                         break

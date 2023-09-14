@@ -74,7 +74,7 @@ class ModelHf(ModelBase):
         output = output.strip()
 
         # Remove emojis
-        output = output.encode('ascii', 'ignore').decode('ascii').strip()
+        output = output.strip()
 
         return output
 
