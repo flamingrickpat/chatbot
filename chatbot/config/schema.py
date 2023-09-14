@@ -6,7 +6,7 @@ config_schema = \
         "description": "chatbot configuration file",
         "type": "object",
         "required": ["user_name", "context_size", "telegram", "tokenizer_path", "summarizer",
-                     "summarizer_message_count", "model"],
+                     "summarizer_message_count", "model", "hf_quant"],
         "properties": {
             "telegram": {
                 "$ref": "#/$defs/telegram",
@@ -113,6 +113,11 @@ config_schema = \
                 "type": "string",
                 "description": "what device to use for hf model. can be cpu or cuda:0"
             },
+            "hf_quant": {
+                "type": "string",
+                "description": "quantization of hf model. can be left empty",
+                "enum": ["", "4bit", "8bit"]
+            },
             "api_url": {
                 "type": "string",
                 "description": "url for api you're using, can be oobabooga or koboldcpp"
@@ -131,6 +136,21 @@ config_schema = \
                 "description": "should bot notify in telegram that it is running?",
                 "default": True
             },
+            "hf_max_gpu_memory": {
+                "type": "integer",
+                "description": "how much gpu memory can me used. for accelerate. 0 for unlimited",
+                "default": 0
+            },
+            "hf_max_cpu_memory": {
+                "type": "integer",
+                "description": "how much cpu memory can me used. for accelerate. 0 for unlimited",
+                "default": 0
+            },
+            "message_streaming": {
+                "type": "boolean",
+                "description": "stream parts of messages to telegram",
+                "default": False
+            }
 
         },
 
