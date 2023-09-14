@@ -171,7 +171,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
             gs.message_manager.insert_message(is_user=True, message=text)
 
-            if False:
+            if gs.config["message_streaming"]:
                 # Post message that is later edited
                 msg = await update.message.reply_text("Thinking...")
                 chat_id = msg.chat_id
@@ -188,11 +188,14 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 await asyncio.sleep(1)
 
                 # Final edit
-                await context.bot.editMessageText(
-                    chat_id=chat_id,
-                    message_id=message_id,
-                    text=response
-                )
+                try:
+                    await context.bot.editMessageText(
+                        chat_id=chat_id,
+                        message_id=message_id,
+                        text=response
+                    )
+                except:
+                    pass
             else:
                 db_id, response = gs.message_manager.get_response()
                 msg = await update.message.reply_text(response)

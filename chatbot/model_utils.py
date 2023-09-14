@@ -37,7 +37,8 @@ class StoppingCriteriaSub(transformers.StoppingCriteria):
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
         output = self.tokenizer.decode(input_ids[0][self.prompt_length:])
 
-        if False:
+        gs = GlobalState()
+        if gs.config["message_streaming"]:
             thread = threading.Thread(target=asyncio.run, args=(something_async(output, self.telegram_chat_id, self.telegram_message_id),))
             thread.start()
 
