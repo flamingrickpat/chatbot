@@ -11,6 +11,9 @@ from chatbot.exceptions import *
 
 logger = logging.getLogger('message_manager')
 
+str_input = "\n\n### Input:\n"
+str_response = "\n\n### Response:\n"
+
 class MessageManager():
     def __init__(self):
         self.gs = GlobalState()
@@ -181,7 +184,6 @@ class MessageManager():
         res = res.replace("</s>", "").strip()
         return res
 
-
     def check_similarity(self, messages: [str], res) -> bool:
         """
         Check jaro distance to other messages from model.
@@ -209,7 +211,6 @@ class MessageManager():
             lst.append(message)
 
         return lst
-
 
     def get_response(self) -> (int, str):
         """
@@ -280,9 +281,6 @@ class MessageManager():
         """
         Generate current prompt with intro and messages to fit inside context size.
         """
-
-        str_input = "\n\n### Input:\n"
-        str_response = "\n\n### Response:\n"
 
         tokens_input = self.gs.model_manager.get_token_count(str_input)
         tokens_response = self.gs.model_manager.get_token_count(str_response)
@@ -430,7 +428,6 @@ class MessageManager():
                                           is_user=is_user, text=summary,
                                           token_count=token_count)
 
-
     def get_relevant_summaries(self) -> str:
         """
         Get latest summary and load similar summaries from chroma to append to scenario.
@@ -444,7 +441,7 @@ class MessageManager():
             summary = res[0]["summary"]
 
             results = self.gs.chroma_manager.get_results(is_message=False, character_id=self.current_character_id,
-                                                 text=summary, count=100)
+                                                         text=summary, count=100)
             result = self.gs.chroma_manager.cut_results_to_desired_length(results, max_token_length=max_token_length)
             return result.strip()
         else:
@@ -463,9 +460,37 @@ class MessageManager():
             message = res[0]["message"]
 
             results = self.gs.chroma_manager.get_results(is_message=True, character_id=self.current_character_id,
-                                                 text=message, count=100)
+                                                         text=message, count=100)
             result = self.gs.chroma_manager.cut_results_to_desired_length(results, max_token_length=max_token_length,
                                                                           add_newline=True)
             return result.strip()
         else:
             return "No relevant messages!"
+
+    def get_messages_for_lora(self) -> str:
+        """
+        Get all messages of conversation with character.
+        """
+        messages_within_context = []
+        new_prompt = ""
+
+        res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
+        res = res.fetchall()
+        for i in range(len(res) - 1, -1, -1):
+            is_user = res[i]["is_user"]
+            message = res[i]["message"]
+            character = res[i]["character"]
+
+            msg = ""
+            if is_user:
+                msg = msg + str_input
+            else:
+                msg = msg + str_response
+            msg = msg + character + ": " + message
+
+            messages_within_context.append(msg)
+
+        for msg in reversed(messages_within_context):
+            new_prompt = new_prompt + msg
+
+        return new_prompt

@@ -1,18 +1,53 @@
-import torch
-from peft import PeftModel
-from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizerFast, \
-    StoppingCriteriaList, BitsAndBytesConfig, AutoConfig
-from accelerate import infer_auto_device_map, init_empty_weights
-from accelerate import load_checkpoint_and_dispatch
 import random
 import time
 import gc
+
+import torch
+from peft import PeftModel
+import torch
+import torch.nn as nn
+import transformers
+from peft import (
+    LoraConfig,
+    PeftConfig,
+    get_peft_model,
+    prepare_model_for_kbit_training,
+)
+from transformers import (
+    AutoConfig,
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    StoppingCriteriaList
+)
+
+from accelerate import infer_auto_device_map, init_empty_weights
+from accelerate import load_checkpoint_and_dispatch
+from datasets import load_dataset
 
 from chatbot.global_state import GlobalState
 from chatbot.model_utils import StoppingCriteriaSub
 from chatbot.model.model_base import ModelBase
 
 
+class Callbacks(transformers.TrainerCallback):
+    def on_step_begin(self, args: transformers.TrainingArguments, state: transformers.TrainerState,
+                      control: transformers.TrainerControl, **kwargs):
+        pass
+
+    def on_substep_end(self, args: transformers.TrainingArguments, state: transformers.TrainerState,
+                       control: transformers.TrainerControl, **kwargs):
+        pass
+
+    def on_log(self, args: transformers.TrainingArguments, state: transformers.TrainerState,
+               control: transformers.TrainerControl, logs, **kwargs):
+        if 'loss' in logs:
+            loss = float(logs['loss'])
+            stop_at_loss = GlobalState().config["hf_lora_stop_at_loss"]
+            if loss <= stop_at_loss:
+                control.should_epoch_stop = True
+                control.should_training_stop = True
+                print(f"\033[1;31;1mStop Loss {stop_at_loss} reached.\033[0;37;0m")
 
 
 class ModelHf(ModelBase):
@@ -153,4 +188,68 @@ class ModelHf(ModelBase):
         output = output.strip()
 
         return output
+
+    def lora(self, dataset_path: str, out_path: str) -> None:
+        def generate_prompt(data_point):
+            return f"""
+{data_point["Context"]}
+
+{data_point["Response"]}
+""".replace("\\n", "\n").strip()
+
+        def generate_and_tokenize_prompt(data_point):
+            full_prompt = generate_prompt(data_point)
+            tokenized_full_prompt = self.tokenizer(full_prompt, padding=True, truncation=True)
+            return tokenized_full_prompt
+
+        dataset = load_dataset("json", data_files=dataset_path)
+        dataset = dataset.shuffle().map(generate_and_tokenize_prompt)
+        dataset = dataset["train"]
+
+        self.model = prepare_model_for_kbit_training(self.model)
+
+        config = LoraConfig(
+            r=256,
+            lora_alpha=512,
+            target_modules=[
+                "q_proj",
+                "v_proj"
+            ],
+            lora_dropout=0.05,
+            bias="none",
+            task_type="CAUSAL_LM"
+        )
+
+        self.model = get_peft_model(self.model, config)
+
+        batch_size = 128
+        micro_batch_size = 4
+        gradient_accumulation_steps = batch_size // micro_batch_size
+        epochs = 10
+
+        training_args = transformers.TrainingArguments(
+            per_device_train_batch_size=micro_batch_size,
+            gradient_accumulation_steps=gradient_accumulation_steps,
+            num_train_epochs=epochs,
+            learning_rate=3e-5,
+            bf16=True,
+            save_total_limit=1,
+            logging_steps=2,
+            save_strategy='no',
+            output_dir=out_path
+        )
+
+        trainer = transformers.Trainer(
+            model=self.model,
+            train_dataset=dataset,
+            args=training_args,
+            data_collator=transformers.DataCollatorForLanguageModeling(self.tokenizer, mlm=False),
+            callbacks=list([Callbacks()])
+        )
+
+        self.model.config.use_cache = False
+        trainer.train()
+
+        self.model.save_pretrained(out_path)
+        time.sleep(10)
 

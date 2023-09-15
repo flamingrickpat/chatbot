@@ -154,6 +154,23 @@ async def regenerate_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except CharacterDoesntExistsException as e:
             await update.message.reply_text("Character doesn't exists!")
 
+async def sleep_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Train a lora and convert it."""
+
+    if check_user(update.effective_user.id):
+        gs = GlobalState()
+        if gs.telegram_state == TELEGRAM_STATE_CHAT:
+            gs.telegram_state = TELEGRAM_STATE_SLEEP
+            await update.message.reply_text(f"{gs.message_manager.current_character_name} is now sleeping!")
+
+            gs.model_manager.sleep(character_id=gs.message_manager.current_character_id)
+
+            await update.message.reply_text(f"{gs.message_manager.current_character_name} just woke up!")
+            gs.telegram_state = TELEGRAM_STATE_CHAT
+        else:
+            await update.message.reply_text("Please select a character first!")
+
+
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Chat with the bot.
@@ -259,6 +276,7 @@ def run_telegram_bot() -> None:
     application.add_handler(CommandHandler("select", select_command))
     application.add_handler(CommandHandler("card", card_command))
     application.add_handler(CommandHandler("regenerate", regenerate_command))
+    application.add_handler(CommandHandler("sleep", sleep_command))
 
     application.add_handler(CallbackQueryHandler(InlineKeyboardHandler))
     # application.add_handler(CommandHandler('request_button', menu))

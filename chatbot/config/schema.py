@@ -159,8 +159,13 @@ config_schema = \
             },
             "model_path": {
                 "type": "string",
-                "description": "folder to store finetuned models and temporary files in",
+                "description": "folder to store finetuned models",
                 "default": "./models/"
+            },
+            "temp_finetune_path": {
+                "type": "string",
+                "description": "folder to store unquantized finetuned models and temporary files in",
+                "default": "./models/temp"
             },
             "gguf_gpu_layers": {
                 "type": "integer",

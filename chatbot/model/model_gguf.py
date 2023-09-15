@@ -13,6 +13,7 @@ class ModelGguf(ModelBase):
         super().__init__()
 
         self.gs = GlobalState()
+        self.llm = None
 
         self.model_path = model_path
         self.init_model()
@@ -23,7 +24,8 @@ class ModelGguf(ModelBase):
                     n_gpu_layers=self.gs.config["gguf_gpu_layers"])
 
     def unload_model(self):
-        llama_free_model(self.llm)
+        del self.llm
+        self.llm = None
         gc.collect()
         torch.cuda.empty_cache()
 
