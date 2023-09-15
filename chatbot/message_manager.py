@@ -297,7 +297,6 @@ class MessageManager():
         res = self.cur.execute("SELECT * FROM characters where id = ?", (self.current_character_id,))
         res = res.fetchall()
         card = res[0]["card"].replace("\r", "")
-        token_count = res[0]["token_count"]
 
         # Insert summaries to cards scenario section
         if "###SUMMARIES###" in card:
@@ -308,6 +307,7 @@ class MessageManager():
         if "###MESSAGES###" in card:
             messages = self.get_relevant_messages()
             card = card.replace("###MESSAGES###", messages)
+            raise Exception("Not supported anymore!")
 
         # Add card to prompt
         new_prompt = card
@@ -316,38 +316,76 @@ class MessageManager():
         token_count = self.gs.model_manager.get_token_count(new_prompt)
         tokens_current -= token_count
 
-        # Add messages to prompt
-        messages_within_context = []
-
         # select all messages
+        # add all messages to prompt so that enough space is left for relevant messages
+        last_messages_ids = []
+        messages_within_context = []
         res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
         res = res.fetchall()
         for i in range(len(res) - 1, -1, -1):
+            id = res[i]["id"]
             is_user = res[i]["is_user"]
             message = res[i]["message"]
             character = res[i]["character"]
             token_count = res[i]["token_count"] + 1  # + 1 for newline
 
             msg = ""
-            if is_user:
-                msg = msg + str_input
-                tokens_current -= tokens_input
-            else:
-                msg = msg + str_response
-                tokens_current -= tokens_response
+            if self.gs.config["add_instructions"]:
+                if is_user:
+                    msg = msg + str_input
+                    tokens_current -= tokens_input
+                else:
+                    msg = msg + str_response
+                    tokens_current -= tokens_response
             msg = msg + character + ": " + message
 
             tokens_current -= token_count
-            if tokens_current > 100:
+            if tokens_current > self.gs.config["memory_message_length"]:
                 messages_within_context.append(msg)
+                last_messages_ids.append(id)
             else:
                 break
 
+        # make long string of last messages
+        last_messages = ""
         for msg in reversed(messages_within_context):
-            new_prompt = new_prompt + msg
+            if self.gs.config["add_instructions"]:
+                last_messages = last_messages + msg
+            else:
+                last_messages = last_messages + msg + "\n"
+
+
+        # make long string of relevant messages that are NOT in last messages
+        # Get last message of user
+        allowance_relevant = self.gs.config["memory_message_length"]
+        relevant_messages = ""
+        sql = "select * from messages where character_id = ? and is_user = 1 order by id desc limit 1"
+        res = self.cur.execute(sql, (self.current_character_id,))
+        res = res.fetchall()
+        if len(res) > 0:
+            message = res[0]["message"]
+            results = self.gs.chroma_manager.get_results(is_message=True, character_id=self.current_character_id,
+                                                         text=message, count=100)
+            for i in range(len(results['ids'][0])):
+                id = results['metadatas'][0][i]["id"]
+                text = results['documents'][0][i]
+                tc = results['metadatas'][0][i]["token_count"]
+
+                if (id not in last_messages_ids) and (text not in relevant_messages):
+                    if allowance_relevant - tc > 0:
+                        relevant_messages = relevant_messages + text + "\n"
+                        allowance_relevant -= tc
+                    else:
+                        break
+
+        # Combine prompt parts
+        new_prompt = new_prompt + relevant_messages + last_messages
 
         # Add instruction and character name to prompt
-        new_prompt = new_prompt + "\n\n### Response:\n" + f"{self.current_character_name}: "
+        if self.gs.config["add_instructions"]:
+            new_prompt = new_prompt + "\n\n### Response:\n" + f"{self.current_character_name}: "
+        else:
+            new_prompt = new_prompt.strip() + "\n" + f"{self.current_character_name}: "
 
         # Check final length
         final_length = self.gs.model_manager.get_token_count(new_prompt)

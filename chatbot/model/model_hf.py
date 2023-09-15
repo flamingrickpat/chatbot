@@ -191,10 +191,17 @@ class ModelHf(ModelBase):
 
     def lora(self, dataset_path: str, out_path: str) -> None:
         def generate_prompt(data_point):
-            return f"""
+            if self.gs.config["add_instructions"]:
+                return f"""
 {data_point["Context"]}
 
 {data_point["Response"]}
+""".replace("\\n", "\n").strip()
+            else:
+                return f"""
+{data_point["Context"].replace("### Input:", "").strip()}
+
+{data_point["Response"].replace("### Response:", "").strip()}
 """.replace("\\n", "\n").strip()
 
         def generate_and_tokenize_prompt(data_point):

@@ -192,6 +192,11 @@ config_schema = \
                 "description": "if messages are too similar to other messages, raise the top_p by this much",
                 "default": 0.02
             },
+            "add_instructions": {
+                "type": "boolean",
+                "description": "add ###Input and ###Response to prompt",
+                "default": True
+            }
         },
 
         "$defs": {
