@@ -166,7 +166,12 @@ config_schema = \
                 "type": "integer",
                 "description": "how many gpu layers should be loaded by llama.cpp",
                 "default": 128
-            }
+            },
+            "ascii_only": {
+                "type": "boolean",
+                "description": "remove non ascii characters from output",
+                "default": False
+            },
         },
 
         "$defs": {

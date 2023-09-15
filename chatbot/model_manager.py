@@ -89,6 +89,8 @@ class ModelManager():
 
     def get_message(self, prompt: str, stop_words: [str]) -> str:
         result = self.model.get_response(prompt, 250, stop_words)
+        if self.gs.config["ascii_only"]:
+            result = result.encode('ascii', 'ignore').decode('ascii')
         return result
 
     def get_finetuned_model_path(self, character_id: int) -> str:
