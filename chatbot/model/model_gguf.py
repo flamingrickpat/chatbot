@@ -1,3 +1,4 @@
+import copy
 import time
 import gc
 import torch
@@ -21,7 +22,8 @@ class ModelGguf(ModelBase):
     def init_model(self):
         self.llm = Llama(model_path=self.model_path,
                     n_ctx=self.gs.config["context_size"],
-                    n_gpu_layers=self.gs.config["gguf_gpu_layers"])
+                    n_gpu_layers=self.gs.config["gguf_gpu_layers"],
+                    seed=int(time.time()))
 
     def unload_model(self):
         del self.llm
@@ -30,7 +32,17 @@ class ModelGguf(ModelBase):
         torch.cuda.empty_cache()
 
     def get_response(self, prompt: str, max_token_length: int, stop_words: [str]) -> str:
+        #self.unload_model()
+        #self.init_model()
+
         args = self.gs.config["gguf_generation_parameters"]
-        output = self.llm(prompt, max_tokens=max_token_length, stop=stop_words, echo=False, **args)
+        tmp = copy.copy(args)
+
+        if "temperature" in tmp:
+            tmp["temperature"] = tmp["temperature"] + self.gs.temperature_modifier
+        if "top_p" in tmp:
+            tmp["top_p"] = tmp["top_p"] + self.gs.top_p_modifier
+
+        output = self.llm(prompt, max_tokens=max_token_length, stop=stop_words, echo=False, **tmp)
         full_out = output["choices"][0]["text"].replace("\\n", "\n")
         return full_out

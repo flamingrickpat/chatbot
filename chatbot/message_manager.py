@@ -241,6 +241,8 @@ class MessageManager():
                 text = ""
 
                 # Try until character name is in response!
+                self.gs.temperature_modifier = 0
+                self.gs.top_p_modifier = 0
                 while True:
                     text = self.call_model(prompt)
                     logger.info("New output: " + text.encode('ascii', 'ignore').decode('ascii'))
@@ -248,7 +250,9 @@ class MessageManager():
                         text = self.clean_result(text)
                         break
                     else:
-                        logger.info("Too similar!")
+                        logger.info("Too similar, increasing temperature by 0.01 and top_p by 0.01")
+                        self.gs.temperature_modifier = self.gs.temperature_modifier + 0.01
+                        self.gs.top_p_modifier = self.gs.top_p_modifier + 0.01
 
                 # Clean up and insert into db!
                 if text != "":

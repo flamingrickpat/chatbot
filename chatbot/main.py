@@ -35,6 +35,8 @@ def main(args: List[str]) -> None:
     config_path = args.config
     config = get_config(config_path)
     gs.config = config
+    gs.temperature_modifier = 0
+    gs.top_p_modifier = 0
 
     if config["summarizer"] == "openai":
         summarizer = SummaryOpenai()
