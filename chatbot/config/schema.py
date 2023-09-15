@@ -182,6 +182,16 @@ config_schema = \
                 "description": "remove non ascii characters from output",
                 "default": False
             },
+            "auto_raise_temperature": {
+                "type": "number",
+                "description": "if messages are too similar to other messages, raise the temperature by this much",
+                "default": 0.02
+            },
+            "auto_raise_top_p": {
+                "type": "number",
+                "description": "if messages are too similar to other messages, raise the top_p by this much",
+                "default": 0.02
+            },
         },
 
         "$defs": {

@@ -199,12 +199,12 @@ class MessageManager():
 
     def get_old_messages(self) -> [str]:
         """
-        Get all messages from model so far.
+        Get old messages from model so that AI can't repeat itself within 20 messages.
         :return:
         """
         lst = []
 
-        res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
+        res = self.cur.execute("SELECT * FROM messages where character_id = ? order by id desc limit 20000000", (self.current_character_id,))
         res = res.fetchall()
         for i in range(len(res) - 1, -1, -1):
             message = res[i]["message"]
@@ -250,9 +250,10 @@ class MessageManager():
                         text = self.clean_result(text)
                         break
                     else:
-                        logger.info("Too similar, increasing temperature by 0.01 and top_p by 0.01")
-                        self.gs.temperature_modifier = self.gs.temperature_modifier + 0.01
-                        self.gs.top_p_modifier = self.gs.top_p_modifier + 0.01
+                        logger.info("Too similar, increasing temperature and top_p!")
+                        self.gs.temperature_modifier = self.gs.temperature_modifier + \
+                                                       self.gs.config["auto_raise_temperature"]
+                        self.gs.top_p_modifier = self.gs.top_p_modifier + self.gs.config["auto_raise_top_p"]
 
                 # Clean up and insert into db!
                 if text != "":

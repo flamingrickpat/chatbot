@@ -80,14 +80,19 @@ class ChromaManager:
         res = ""
         tmp = max_token_length
         for i in range(len(results['ids'][0])):
+            text = results['documents'][0][i]
             tc = results['metadatas'][0][i]["token_count"]
-            if (tmp - tc) > 0:
-                tmp -= tc
-                if add_newline:
-                    res = res + results['documents'][0][i] + "\n"
-                else:
-                    res = res + results['documents'][0][i] + " "
+
+            if text in res:
+                continue
             else:
-                break
+                if (tmp - tc) > 0:
+                    tmp -= tc
+                    if add_newline:
+                        res = res + text + "\n"
+                    else:
+                        res = res + text + " "
+                else:
+                    break
 
         return res
