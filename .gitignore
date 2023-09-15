@@ -10,6 +10,7 @@ config.json
 database/
 models/
 test/
+test_scripts/
 logs/latest_prompt.txt
 
 # Distribution / packaging
