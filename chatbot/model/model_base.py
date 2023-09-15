@@ -5,5 +5,8 @@ class ModelBase:
     def init_model(self):
         raise NotImplementedError()
 
+    def unload_model(self):
+        raise NotImplementedError()
+
     def get_response(self, prompt: str, max_token_length: int, stop_words: [str]) -> str:
         raise NotImplementedError()

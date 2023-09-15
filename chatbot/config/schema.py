@@ -167,6 +167,11 @@ config_schema = \
                 "description": "how many gpu layers should be loaded by llama.cpp",
                 "default": 128
             },
+            "gguf_generation_parameters": {
+                "type": "object",
+                "description": "",
+                "default": {}
+            },
             "ascii_only": {
                 "type": "boolean",
                 "description": "remove non ascii characters from output",

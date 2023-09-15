@@ -6,6 +6,7 @@ from accelerate import infer_auto_device_map, init_empty_weights
 from accelerate import load_checkpoint_and_dispatch
 import random
 import time
+import gc
 
 from chatbot.global_state import GlobalState
 from chatbot.model_utils import StoppingCriteriaSub
@@ -119,6 +120,12 @@ class ModelHf(ModelBase):
                 quantization_config=bnb_config,
                 **params
             )
+
+    def unload_model(self):
+        del self.model
+        self.model = None
+        gc.collect()
+        torch.cuda.empty_cache()
 
     def get_response(self, prompt: str, max_token_length: int, stop_words: [str]) -> str:
         seeds = int(time.time() * 1000)
