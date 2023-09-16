@@ -16,6 +16,7 @@ from chatbot.model_manager import ModelManager
 from chatbot.global_state import GlobalState
 from chatbot.summary import SummaryOpenai
 from chatbot.chroma_manager import ChromaManager
+from chatbot.emotion_manager import EmotionManger
 
 logger = logging.getLogger('chatbot')
 
@@ -51,6 +52,9 @@ def main(args: List[str]) -> None:
 
     chroma = ChromaManager()
     gs.chroma_manager = chroma
+
+    em = EmotionManger()
+    gs.emotion_manager = em
 
     # Make new chroma db on startup
     # gs.message_manager.generate_missing_chroma_entries()

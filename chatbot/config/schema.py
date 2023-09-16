@@ -196,6 +196,11 @@ config_schema = \
                 "type": "boolean",
                 "description": "add ###Input and ###Response to prompt",
                 "default": True
+            },
+            "nsfw_classifier": {
+                "type": "string",
+                "description": "hf name or path to nsfw classifier",
+                "default": "michellejieli/NSFW_text_classifier"
             }
         },
 
