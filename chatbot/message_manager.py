@@ -237,6 +237,22 @@ class MessageManager():
 
         return lst
 
+    def check_banned_phrases(self, text: str) -> bool:
+        """
+        Check if text contains a banned phrase!
+        :param text:
+        :return:
+        """
+        bp = self.gs.config["banned_phrases"]
+        if len(bp) == 0:
+            return True
+
+        for p in bp:
+            if p.lower() in text.lower():
+                return False
+
+        return True
+
     def get_response(self) -> (int, str):
         """
         Generate a prompt, send it to model and parse response. Save response in database.
@@ -271,7 +287,7 @@ class MessageManager():
                 while True:
                     text = self.call_model(prompt)
                     logger.info("New output: " + text.encode('ascii', 'ignore').decode('ascii'))
-                    if self.check_similarity_sentences(old_messages, text):
+                    if self.check_similarity_sentences(old_messages, text) and self.check_banned_phrases(text):
                         text = self.clean_result(text)
                         break
                     else:

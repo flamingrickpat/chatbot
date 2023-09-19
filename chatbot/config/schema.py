@@ -201,6 +201,12 @@ config_schema = \
                 "type": "string",
                 "description": "hf name or path to nsfw classifier",
                 "default": "michellejieli/NSFW_text_classifier"
+            },
+            "banned_phrases": {
+                "type": "array",
+                "description": "phrases that must not be generated",
+                "items": {"type": "string"},
+                "default": []
             }
         },
 
