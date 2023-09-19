@@ -8,6 +8,7 @@ import jellyfish
 
 from chatbot.global_state import GlobalState
 from chatbot.exceptions import *
+from chatbot.utils import split_into_sentences
 
 logger = logging.getLogger('message_manager')
 
@@ -120,12 +121,13 @@ class MessageManager():
         else:
             character = self.current_character_name
 
+        ratio = self.gs.emotion_manager.nsfw_ratio(message)
         full_message = character + ": " + message
         token_count = self.gs.model_manager.get_token_count(full_message) + 1
         send_date = datetime.now(timezone.utc)
         self.cur.execute(
-            "INSERT INTO messages (character_id, is_user, character, message, time, token_count) VALUES(?, ?, ?, ?, ?, ?)",
-            (self.current_character_id, is_user, character, message, send_date, token_count))
+            "INSERT INTO messages (character_id, is_user, character, message, time, token_count, nsfw_ratio) VALUES(?, ?, ?, ?, ?, ?, ?)",
+            (self.current_character_id, is_user, character, message, send_date, token_count, ratio))
         self.con.commit()
         id = self.cur.lastrowid
 
@@ -197,14 +199,37 @@ class MessageManager():
                 return False
         return True
 
-    def get_old_messages(self) -> [str]:
+    def check_similarity_sentences(self, messages: [str], res) -> bool:
+        """
+        Check jaro distance to other messages from model.
+        :param messages:
+        :param res:
+        :return:
+        """
+        input_sentences = split_into_sentences(res)
+        old_sentences = []
+        for mes in messages:
+            tmp = split_into_sentences(mes)
+            for t in tmp:
+                old_sentences.append(t)
+
+        for inps in input_sentences:
+            for olds in old_sentences:
+                if len(inps) > 5 and len(olds) > 5:
+                    sim = jellyfish.jaro_distance(inps, olds)
+                    if sim > self.gs.config["max_jaro_distance"]:
+                        return False
+        return True
+
+    def get_old_messages(self, limit: int) -> [str]:
         """
         Get old messages from model so that AI can't repeat itself within 20 messages.
         :return:
         """
         lst = []
 
-        res = self.cur.execute("SELECT * FROM messages where character_id = ? order by id desc limit 20000000", (self.current_character_id,))
+        res = self.cur.execute("SELECT * FROM messages where character_id = ? order by id desc limit ?",
+                               (self.current_character_id, limit))
         res = res.fetchall()
         for i in range(len(res) - 1, -1, -1):
             message = res[i]["message"]
@@ -217,7 +242,7 @@ class MessageManager():
         Generate a prompt, send it to model and parse response. Save response in database.
         :return: tuple of id of new response in database and text
         """
-        old_messages = self.get_old_messages()
+        old_messages = self.get_old_messages(limit=10)
 
         prompt = self.get_prompt()
 
@@ -246,7 +271,7 @@ class MessageManager():
                 while True:
                     text = self.call_model(prompt)
                     logger.info("New output: " + text.encode('ascii', 'ignore').decode('ascii'))
-                    if self.check_similarity(old_messages, text):
+                    if self.check_similarity_sentences(old_messages, text):
                         text = self.clean_result(text)
                         break
                     else:
@@ -537,3 +562,21 @@ class MessageManager():
             new_prompt = new_prompt + msg
 
         return new_prompt
+
+    def generate_missing_nsfw_ratio(self):
+        """
+        Go over all messages and find the nsfw ratio and update db.
+        :return:
+        """
+        sql = "select * from messages"
+        res = self.cur.execute(sql)
+        res = res.fetchall()
+        for r in res:
+            id = r["id"]
+            msg = r["message"]
+            ratio = self.gs.emotion_manager.nsfw_ratio(msg)
+            sql = "update messages set nsfw_ratio = ? where id = ?"
+            self.cur.execute(sql, (ratio, id))
+            self.con.commit()
+
+

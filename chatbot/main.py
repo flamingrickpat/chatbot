@@ -44,8 +44,13 @@ def main(args: List[str]) -> None:
         summarizer.init_summarizer()
         gs.summarizer = summarizer
 
+    em = EmotionManger()
+    gs.emotion_manager = em
+
     message_manager = MessageManager()
     gs.message_manager = message_manager
+
+    #message_manager.generate_missing_nsfw_ratio()
 
     model_manager = ModelManager()
     gs.model_manager = model_manager
@@ -53,11 +58,8 @@ def main(args: List[str]) -> None:
     chroma = ChromaManager()
     gs.chroma_manager = chroma
 
-    em = EmotionManger()
-    gs.emotion_manager = em
-
     # Make new chroma db on startup
-    # gs.message_manager.generate_missing_chroma_entries()
+    #gs.message_manager.generate_missing_chroma_entries()
 
     gs.telegram_chat_id = 0
     gs.telegram_message_id = 0
