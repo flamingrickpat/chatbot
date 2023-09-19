@@ -3,6 +3,7 @@ from transformers import pipeline
 from chatbot.global_state import GlobalState
 class EmotionManger:
     def __init__(self):
+        self.emotion_classifier = None
         self.nsfw_classifier = None
         self.gs = GlobalState()
 
@@ -10,6 +11,7 @@ class EmotionManger:
 
     def init_emotion_manger(self):
         self.nsfw_classifier = pipeline("sentiment-analysis", model=self.gs.config["nsfw_classifier"])
+        self.emotion_classifier = pipeline("text-classification", model=self.gs.config["emotion_classifier"])
 
     def nsfw_ratio(self, text: str) -> float:
         try:
@@ -20,3 +22,9 @@ class EmotionManger:
             return score
         except Exception as e:
             return 0.5
+
+    def get_emotions(self, text: str):
+        return self.emotion_classifier(text, truncation=False)
+    
+
+

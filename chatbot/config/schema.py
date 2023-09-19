@@ -202,6 +202,11 @@ config_schema = \
                 "description": "hf name or path to nsfw classifier",
                 "default": "michellejieli/NSFW_text_classifier"
             },
+            "emotion_classifier": {
+                "type": "string",
+                "description": "hf name or path to emotion classifier",
+                "default": "nateraw/bert-base-uncased-emotion"
+            },
             "banned_phrases": {
                 "type": "array",
                 "description": "phrases that must not be generated",
