@@ -96,6 +96,19 @@ class ModelManager():
         result = self.model.get_response(prompt, 250, stop_words)
         if self.gs.config["ascii_only"]:
             result = result.encode('ascii', 'ignore').decode('ascii')
+
+        result = result.replace("1)", "")
+        result = result.replace("2)", "")
+        result = result.replace("3)", "")
+        result = result.replace("4)", "")
+        result = result.replace("5)", "")
+
+        result = result.replace("1.", "")
+        result = result.replace("2.", "")
+        result = result.replace("3.", "")
+        result = result.replace("4.", "")
+        result = result.replace("5.", "")
+
         return result
 
     def get_finetuned_model_path(self, character_id: int) -> str:

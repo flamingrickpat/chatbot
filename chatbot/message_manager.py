@@ -284,9 +284,17 @@ class MessageManager():
                 # Try until character name is in response!
                 self.gs.temperature_modifier = 0
                 self.gs.top_p_modifier = 0
+
+                if self.gs.regenerate_counter > 0:
+                    self.gs.temperature_modifier = self.gs.temperature_modifier + \
+                                                   (self.gs.config["auto_raise_temperature"] * self.gs.regenerate_counter)
+                    self.gs.top_p_modifier = self.gs.top_p_modifier + \
+                                             (self.gs.config["auto_raise_top_p"] * self.gs.regenerate_counter)
+
                 while True:
                     text = self.call_model(prompt)
                     logger.info("New output: " + text.encode('ascii', 'ignore').decode('ascii'))
+                    logger.info(f"Using temp {self.gs.temperature_modifier} and top_p {self.gs.top_p_modifier} mod")
                     if self.check_similarity_sentences(old_messages, text) and self.check_banned_phrases(text):
                         text = self.clean_result(text)
                         break

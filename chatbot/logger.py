@@ -8,7 +8,7 @@ from chatbot.exceptions import UnsupportedLoggingLevel
 
 logger = logging.getLogger(__name__)
 
-LOG_FORMAT = '%(asctime)s - [%(thread)d] - %(name)s - %(levelname)s - %(message)s'
+LOG_FORMAT = '%(asctime)s - [%(thread)d] pid[%(process)d] - %(name)s - %(levelname)s - %(message)s'
 
 class LoggingLevel(Enum):
     Debug = "debug"

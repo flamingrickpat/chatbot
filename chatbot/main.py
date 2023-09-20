@@ -38,6 +38,7 @@ def main(args: List[str]) -> None:
     gs.config = config
     gs.temperature_modifier = 0
     gs.top_p_modifier = 0
+    gs.regenerate_counter = 0
 
     if config["summarizer"] == "openai":
         summarizer = SummaryOpenai()

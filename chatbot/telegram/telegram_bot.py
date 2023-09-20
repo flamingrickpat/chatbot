@@ -130,6 +130,7 @@ async def regenerate_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if check_user(update.effective_user.id):
         gs = GlobalState()
+        gs.regenerate_counter += 1
         try:
             db_id, old_chat_id, old_message_id, new_response = gs.message_manager.regenerate()
 
@@ -186,6 +187,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             user = update.effective_user
             text = update.message.text
 
+            gs.regenerate_counter = 0
             gs.message_manager.insert_message(is_user=True, message=text)
 
             if gs.config["message_streaming"]:
