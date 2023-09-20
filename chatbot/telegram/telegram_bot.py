@@ -132,6 +132,16 @@ async def regenerate_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         gs = GlobalState()
         gs.regenerate_counter += 1
         try:
+            await context.bot.deleteMessage(
+                chat_id=update.message.chat_id,
+                message_id=update.message.message_id,
+                read_timeout=DEFAULT_NONE,
+                write_timeout=DEFAULT_NONE,
+                connect_timeout=DEFAULT_NONE,
+                pool_timeout=DEFAULT_NONE,
+                api_kwargs=None
+            )
+
             db_id, old_chat_id, old_message_id, new_response = gs.message_manager.regenerate()
 
             msg = await update.message.reply_text(new_response)
