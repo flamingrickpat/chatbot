@@ -456,7 +456,11 @@ class MessageManager():
         """
         Call summarizer, summarize last x messages and write it to summaries table.
         """
-        res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
+        if self.gs.config["summarizer_omit_nsfw"]:
+            res = self.cur.execute("SELECT * FROM messages where character_id = ? and nsfw_ratio < ?",
+                                   (self.current_character_id, self.gs.config["summarizer_omit_nsfw_cutoff"]))
+        else:
+            res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
         res = res.fetchall()
 
         text = ""

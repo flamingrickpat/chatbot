@@ -212,6 +212,16 @@ config_schema = \
                 "description": "phrases that must not be generated",
                 "items": {"type": "string"},
                 "default": []
+            },
+            "summarizer_omit_nsfw": {
+                "type": "boolean",
+                "description": "don't summarize messages that are rated nsfw",
+                "default": True
+            },
+            "summarizer_omit_cutoff": {
+                "type": "number",
+                "description": "max nsfw ratio to ban from summarizer",
+                "default": 0.9
             }
         },
 
