@@ -181,6 +181,59 @@ async def sleep_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         else:
             await update.message.reply_text("Please select a character first!")
 
+async def continue_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Continue the AI response without inputting any data yourself.
+    """
+
+    if check_user(update.effective_user.id):
+        gs = GlobalState()
+        if gs.telegram_state == TELEGRAM_STATE_UNINITIALIZED:
+            await update.message.reply_text("Please select a character first!")
+        elif gs.telegram_state == TELEGRAM_STATE_CHAT:
+            user = update.effective_user
+            text = update.message.text
+
+            if gs.config["message_streaming"]:
+                # Post message that is later edited
+                msg = await update.message.reply_text("Thinking...")
+                chat_id = msg.chat_id
+                message_id = msg.message_id
+
+                # Set parameters for live chat update
+                gs.telegram_chat_id = chat_id
+                gs.telegram_message_id = message_id
+
+                # Get response
+                db_id, response = gs.message_manager.get_response()
+                gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
+
+                await asyncio.sleep(1)
+
+                # Final edit
+                try:
+                    await context.bot.editMessageText(
+                        chat_id=chat_id,
+                        message_id=message_id,
+                        text=response
+                    )
+                except:
+                    pass
+            else:
+                db_id, response = gs.message_manager.get_response()
+                msg = await update.message.reply_text(response)
+
+                chat_id = msg.chat_id
+                message_id = msg.message_id
+                gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
+        elif gs.telegram_state == TELEGRAM_STATE_CARD:
+            text = update.message.text.strip()
+            name, token_length = gs.message_manager.update_character_card(text)
+            await update.message.reply_text(f"Character card for {name} was updated. Token length: {token_length}")
+            gs.telegram_state = TELEGRAM_STATE_CHAT
+    else:
+        await update.message.reply_text("You are not white-listed and can't use this bot!")
+
 
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -289,6 +342,7 @@ def run_telegram_bot() -> None:
     application.add_handler(CommandHandler("card", card_command))
     application.add_handler(CommandHandler("regenerate", regenerate_command))
     application.add_handler(CommandHandler("sleep", sleep_command))
+    application.add_handler(CommandHandler("continue", continue_command))
 
     application.add_handler(CallbackQueryHandler(InlineKeyboardHandler))
     # application.add_handler(CommandHandler('request_button', menu))
