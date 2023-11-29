@@ -3,11 +3,10 @@ import time
 import gc
 import torch
 
-from llama_cpp import Llama, llama_free_model
+from llama_cpp import Llama, llama_free_model, LogitsProcessor, LogitsProcessorList
 
 from chatbot.global_state import GlobalState
 from chatbot.model.model_base import ModelBase
-
 
 class ModelGguf(ModelBase):
     def __init__(self, model_path: str):
@@ -43,6 +42,10 @@ class ModelGguf(ModelBase):
         if "top_p" in tmp:
             tmp["top_p"] = tmp["top_p"] + self.gs.top_p_modifier
 
-        output = self.llm(prompt, max_tokens=max_token_length, stop=stop_words, echo=False, **tmp)
+        output = self.llm(prompt,
+                          max_tokens=max_token_length,
+                          stop=stop_words,
+                          echo=False,
+                          **tmp)
         full_out = output["choices"][0]["text"].replace("\\n", "\n")
         return full_out

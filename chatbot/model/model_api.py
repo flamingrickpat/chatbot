@@ -12,14 +12,13 @@ class ModelApi(ModelBase):
         super().__init__()
 
     def init_model(self):
-        child_process = subprocess.Popen(self.gs.config["api_exe"])
-        time.sleep(180)
         return
 
     def get_response(self, prompt: str, max_token_length: int, stop_words: [str]) -> str:
+        self.gs = GlobalState()
         t = {
             "n": 1,
-            "max_context_length": 4096,
+            "max_context_length": self.gs.config["context_size"],
             "max_length": max_token_length,
             "rep_pen": 1.08,
             "temperature": 0.8,
