@@ -19,32 +19,12 @@ str_response = "\n\n### Response:\n"
 class MessageManager():
     def __init__(self):
         self.gs = GlobalState()
-        self.con = None
-        self.cur = None
+        self.con = self.gs.db_manager.con
+        self.cur = self.gs.db_manager.cur
 
         self.current_character_id = 0
         self.current_character_name = ""
 
-        self.init_database()
-
-    def init_database(self) -> None:
-        """
-        Open database if it exists, otherwise create it.
-        Same with chroma.
-        """
-        path = self.gs.config["database_path"]
-        if os.path.exists(path):
-            self.con = sqlite3.connect(path)
-            self.con.row_factory = sqlite3.Row
-            self.cur = self.con.cursor()
-        else:
-            self.create_database(path)
-
-    def create_database(self, path: str) -> None:
-        """
-        Create database at location.
-        """
-        pass
 
     def list_available_characters(self) -> List[str]:
         """
@@ -568,43 +548,6 @@ class MessageManager():
         user_name = self.gs.config["user_name"]
         return self.gs.model_manager.get_message(prompt, stop_words=[f"{user_name}:", "\n"])
 
-    def summarize_last_messages(self) -> None:
-        """
-        Call summarizer, summarize last x messages and write it to summaries table.
-        """
-        if self.gs.config["summarizer_omit_nsfw"]:
-            res = self.cur.execute("SELECT * FROM messages where character_id = ? and nsfw_ratio < ?",
-                                   (self.current_character_id, self.gs.config["summarizer_omit_nsfw_cutoff"]))
-        else:
-            res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
-        res = res.fetchall()
-
-        text = ""
-
-        in_window = res[max(0, len(res) - self.gs.config["summarizer_message_count"]):]
-        ids = []
-        for msg in in_window:
-            ids.append(msg["id"])
-            text = text + msg["character"] + ": " + msg["message"] + "\n"
-
-        summary = self.gs.summarizer.summarize_text(text)
-        token_count = self.gs.model_manager.get_token_count(summary)
-
-        send_date = datetime.now(timezone.utc)
-        self.cur.execute("INSERT INTO summaries (character_id, summary, time, token_count) VALUES(?, ?, ?, ?)",
-                         (self.current_character_id, summary, send_date, token_count))
-        self.con.commit()
-        inserted_id = self.cur.lastrowid
-
-        # insert into chroma
-        self.gs.chroma_manager.insert(is_message=False, id=inserted_id, character_id=self.current_character_id,
-                                      is_user=False, text=summary, token_count=token_count)
-
-        # Insert relation to messages
-        for msg_id in ids:
-            self.cur.execute("INSERT INTO summaries_messages (message_id, summary_id) VALUES(?, ?)",
-                             (msg_id, inserted_id))
-            self.con.commit()
 
     def generate_missing_chroma_entries(self):
         self.gs.chroma_manager.clear(is_message=True)

@@ -17,6 +17,8 @@ from chatbot.global_state import GlobalState
 from chatbot.summary import SummaryOpenai, SummaryBart
 from chatbot.chroma_manager import ChromaManager
 from chatbot.emotion_manager import EmotionManger
+from chatbot.db_manager import DbManager
+from chatbot.summary_manager import SummaryManager
 
 logger = logging.getLogger('chatbot')
 
@@ -40,14 +42,11 @@ def main(args: List[str]) -> None:
     gs.top_p_modifier = 0
     gs.regenerate_counter = 0
 
-    if config["summarizer"] == "openai":
-        summarizer = SummaryOpenai()
-        summarizer.init_summarizer()
-        gs.summarizer = summarizer
-    elif config["summarizer"] == "openai":
-        summarizer = SummaryBart()
-        summarizer.init_summarizer()
-        gs.summarizer = summarizer
+    dbm = DbManager()
+    gs.db_manager = dbm
+
+    sm = SummaryManager()
+    gs.summary_manager = sm
 
     em = EmotionManger()
     gs.emotion_manager = em

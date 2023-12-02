@@ -9,6 +9,9 @@ class EmotionManger:
 
         self.init_emotion_manger()
 
+        self.con = self.gs.db_manager.con
+        self.cur = self.gs.db_manager.cur
+
     def init_emotion_manger(self):
         self.nsfw_classifier = pipeline("sentiment-analysis", model=self.gs.config["nsfw_classifier"])
         self.emotion_classifier = pipeline("text-classification", model=self.gs.config["emotion_classifier"], top_k=None)
@@ -37,8 +40,7 @@ class EmotionManger:
         Recalc emotions of all messages.
         :return:
         """
-        mm = self.gs.message_manager
-        res = mm.cur.execute("SELECT * FROM messages")
+        res = self.cur.execute("SELECT * FROM messages")
         res = res.fetchall()
 
         for i in range(len(res)):
@@ -57,8 +59,8 @@ class EmotionManger:
             for d in output:
                 lbl = d["label"]
                 sql = f"update messages set {lbl} = ? where id = ?"
-                mm.cur.execute(sql, (d["score"], id))
+                self.cur.execute(sql, (d["score"], id))
 
-        mm.con.commit()
+        self.con.commit()
 
 
