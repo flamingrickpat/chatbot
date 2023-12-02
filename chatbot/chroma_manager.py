@@ -141,3 +141,8 @@ class ChromaManager:
             sql = "update summaries set embedding = ? where id = ?"
             cur.execute(sql, (sqlite3.Binary(blob), id))
         con.commit()
+
+    def text_to_embedding_blob(self, text):
+        embeddings = self.model.encode(text)
+        blob = np_to_blob(embeddings)
+        return blob

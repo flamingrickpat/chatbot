@@ -73,12 +73,15 @@ class EmotionManger:
         )[0]
         return sorted(output, key=lambda x: x["score"], reverse=True)
 
-    def recalc_emotions(self):
+    def calc_emotions(self, id):
         """
         Recalc emotions of all messages.
         :return:
         """
-        res = self.cur.execute("SELECT * FROM messages")
+        if id is None:
+            res = self.cur.execute("SELECT * FROM messages")
+        else:
+            res = self.cur.execute(f"SELECT * FROM messages where id = {id}")
         res = res.fetchall()
 
         for i in range(len(res)):
