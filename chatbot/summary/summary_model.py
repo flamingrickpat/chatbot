@@ -1,3 +1,5 @@
+import re
+
 from chatbot.summary.summary_base import SummaryBase
 from chatbot.global_state import GlobalState
 
@@ -10,4 +12,7 @@ class SummaryModel(SummaryBase):
 
     def summarize_text(self, text: str) -> str:
         query = summary_template.replace("<conv>", text)
-        return self.gs.model_manager.get_message(query, stop_words=["</s>"])
+        summary = self.gs.model_manager.get_message(query, stop_words=["</s>"])
+        summary = re.sub('[^a-zA-Z,.!? ]+', '', summary)
+        summary = summary.replace("\n", " ")
+        return summary

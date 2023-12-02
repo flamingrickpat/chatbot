@@ -1,6 +1,43 @@
 from transformers import pipeline
 
 from chatbot.global_state import GlobalState
+
+emotion_list = [
+    "caring",
+    "faithful",
+    "content",
+    "sentimental",
+    "joyful",
+    "hopeful",
+    "proud",
+    "guilty",
+    "sad",
+    "grateful",
+    "afraid",
+    "ashamed",
+    "trusting",
+    "confident",
+    "prepared",
+    "anxious",
+    "lonely",
+    "terrified",
+    "devastated",
+    "disgusted",
+    "annoyed",
+    "excited",
+    "jealous",
+    "anticipating",
+    "furious",
+    "angry",
+    "impressed",
+    "nostalgic",
+    "surprised",
+    "apprehensive",
+    "disappointed",
+    "embarrassed",
+]
+
+
 class EmotionManger:
     def __init__(self):
         self.emotion_classifier = None
@@ -14,7 +51,8 @@ class EmotionManger:
 
     def init_emotion_manger(self):
         self.nsfw_classifier = pipeline("sentiment-analysis", model=self.gs.config["nsfw_classifier"])
-        self.emotion_classifier = pipeline("text-classification", model=self.gs.config["emotion_classifier"], top_k=None)
+        self.emotion_classifier = pipeline("text-classification", model=self.gs.config["emotion_classifier"],
+                                           top_k=None)
 
     def nsfw_ratio(self, text: str) -> float:
         try:
@@ -34,7 +72,7 @@ class EmotionManger:
             max_length=self.emotion_classifier.model.config.max_position_embeddings,
         )[0]
         return sorted(output, key=lambda x: x["score"], reverse=True)
-    
+
     def recalc_emotions(self):
         """
         Recalc emotions of all messages.
@@ -62,5 +100,3 @@ class EmotionManger:
                 self.cur.execute(sql, (d["score"], id))
 
         self.con.commit()
-
-

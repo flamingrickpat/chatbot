@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 
 from chatbot.summary import SummaryOpenai, SummaryBart, SummaryModel
 from chatbot.global_state import GlobalState
+from chatbot.emotion_manager import emotion_list
 
+EMOTION_SUMMARY_FRACTION = 0.5
 
 class SummaryManager:
     def __init__(self):
@@ -82,6 +84,11 @@ class SummaryManager:
             for j in range(len(msgs)):
                 cur_block_ids = []
                 cur_block_msgs = []
+                cur_emotions = {}
+
+                emotion_counter = 0
+                for emotion in emotion_list:
+                    cur_emotions[emotion] = 0
 
                 if j < self.gs.config["summarizer_message_count"]:
                     continue
@@ -90,16 +97,26 @@ class SummaryManager:
                     if j - k >= 0:
                         msg_id = msgs[j - k]["id"]
                         message = msgs[j - k]["character"] + ": " + msgs[j - k]["message"]
+                        is_user = msgs[j - k]["is_user"]
 
                         cur_block_ids.insert(0, msg_id)
                         cur_block_msgs.insert(0, message)
 
+                        if is_user == 0:
+                            emotion_counter += 1
+                            for emotion in emotion_list:
+                                cur_emotions[emotion] = cur_emotions[emotion] + msgs[j - k][emotion]
+
                         if k == self.gs.config["summarizer_message_count"] - 1:
-                            res = self.cur.execute("select summary from summaries where last_message_id = ?",
+                            res = self.cur.execute("select * from summaries where last_message_id = ?",
                                                    (msg_id,))
                             sums = res.fetchall()
                             if len(sums) > 0:
                                 cur_block_msgs.insert(0, sums[0]["summary"])
+
+                                emotion_counter += 1
+                                for emotion in emotion_list:
+                                    cur_emotions[emotion] = cur_emotions[emotion] + (sums[0][emotion] * EMOTION_SUMMARY_FRACTION)
                     else:
                         break
 
@@ -120,6 +137,12 @@ class SummaryManager:
                     (char_id, whole_text, summary, send_date, token_count, cur_block_ids[-1]))
                 self.con.commit()
                 inserted_id = self.cur.lastrowid
+
+                if emotion_counter > 0:
+                    for emotion in emotion_list:
+                        sql = f"update summaries set {emotion} = ? where id = ?"
+                        self.cur.execute(sql, (cur_emotions[emotion] / emotion_counter, inserted_id))
+                self.con.commit()
 
                 # Insert relation to messages
                 for msg_id in cur_block_ids:
