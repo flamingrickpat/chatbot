@@ -1,8 +1,9 @@
 from transformers import pipeline
 from datetime import datetime, timezone
 
-from chatbot.summary import SummaryOpenai, SummaryBart
+from chatbot.summary import SummaryOpenai, SummaryBart, SummaryModel
 from chatbot.global_state import GlobalState
+
 
 class SummaryManager:
     def __init__(self):
@@ -18,6 +19,10 @@ class SummaryManager:
             self.summarizer = summarizer
         elif self.gs.config["summarizer"] == "bart":
             summarizer = SummaryBart()
+            summarizer.init_summarizer()
+            self.summarizer = summarizer
+        elif self.gs.config["summarizer"] == "model":
+            summarizer = SummaryModel()
             summarizer.init_summarizer()
             self.summarizer = summarizer
 
@@ -65,3 +70,59 @@ class SummaryManager:
         self.cur.execute("delete from summaries_messages")
         self.con.commit()
 
+        res = self.cur.execute("SELECT * FROM characters")
+        chars = res.fetchall()
+
+        for i in range(len(chars)):
+            char_id = chars[i]["id"]
+
+            res = self.cur.execute("SELECT * FROM messages where character_id = ?", (char_id,))
+            msgs = res.fetchall()
+
+            for j in range(len(msgs)):
+                cur_block_ids = []
+                cur_block_msgs = []
+
+                if j < self.gs.config["summarizer_message_count"]:
+                    continue
+
+                for k in range(self.gs.config["summarizer_message_count"]):
+                    if j - k >= 0:
+                        msg_id = msgs[j - k]["id"]
+                        message = msgs[j - k]["character"] + ": " + msgs[j - k]["message"]
+
+                        cur_block_ids.insert(0, msg_id)
+                        cur_block_msgs.insert(0, message)
+
+                        if k == self.gs.config["summarizer_message_count"] - 1:
+                            res = self.cur.execute("select summary from summaries where last_message_id = ?",
+                                                   (msg_id,))
+                            sums = res.fetchall()
+                            if len(sums) > 0:
+                                cur_block_msgs.insert(0, sums[0]["summary"])
+                    else:
+                        break
+
+                if len(cur_block_ids) == 0:
+                    continue
+                if len(cur_block_msgs) == 0:
+                    continue
+
+                whole_text = "\n".join(cur_block_msgs)
+                whole_text.strip()
+
+                summary = self.summarizer.summarize_text(whole_text)
+                token_count = self.gs.model_manager.get_token_count(summary)
+
+                send_date = datetime.now(timezone.utc)
+                self.cur.execute(
+                    "INSERT INTO summaries (character_id, original_text, summary, time, token_count, last_message_id) VALUES(?, ?, ?, ?, ?, ?)",
+                    (char_id, whole_text, summary, send_date, token_count, cur_block_ids[-1]))
+                self.con.commit()
+                inserted_id = self.cur.lastrowid
+
+                # Insert relation to messages
+                for msg_id in cur_block_ids:
+                    self.cur.execute("INSERT INTO summaries_messages (message_id, summary_id) VALUES(?, ?)",
+                                     (msg_id, inserted_id))
+                    self.con.commit()

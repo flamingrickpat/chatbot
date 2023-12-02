@@ -58,7 +58,7 @@ config_schema = \
             "summarizer": {
                 "type": "string",
                 "description": "what summarizer should be used?",
-                "enum": ["openai", "bart", "api_endpoint"]
+                "enum": ["openai", "bart", "model"]
             },
             "openai_api_key": {
                 "type": "string",

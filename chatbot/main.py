@@ -78,7 +78,8 @@ def main(args: List[str]) -> None:
         message_manager.select_character(gs.config["autoselect_character"])
         gs.telegram_state = TELEGRAM_STATE_CHAT
 
-    em.recalc_emotions()
+    #em.recalc_emotions()
+    sm.recalc_summaries()
 
     #run_telegram_bot()
     #prompt = gs.message_manager.get_prompt()

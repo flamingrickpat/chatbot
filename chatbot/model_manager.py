@@ -93,21 +93,9 @@ class ModelManager():
 
 
     def get_message(self, prompt: str, stop_words: [str]) -> str:
-        result = self.model.get_response(prompt, 250, stop_words)
+        result = self.model.get_response(prompt, 256, stop_words)
         if self.gs.config["ascii_only"]:
             result = result.encode('ascii', 'ignore').decode('ascii')
-
-        result = result.replace("1)", "")
-        result = result.replace("2)", "")
-        result = result.replace("3)", "")
-        result = result.replace("4)", "")
-        result = result.replace("5)", "")
-
-        result = result.replace("1.", "")
-        result = result.replace("2.", "")
-        result = result.replace("3.", "")
-        result = result.replace("4.", "")
-        result = result.replace("5.", "")
 
         return result
 

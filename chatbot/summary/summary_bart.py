@@ -10,4 +10,4 @@ class SummaryBart(SummaryBase):
         self.summarizer = pipeline("summarization", model=model)
 
     def summarize_text(self, text: str) -> str:
-        return self.summarizer(text)[0]["summary_text"]
+        return self.summarizer(text, min_length=50, max_length=100)[0]["summary_text"]
