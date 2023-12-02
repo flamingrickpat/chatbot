@@ -86,8 +86,8 @@ def main(args: List[str]) -> None:
     #sm.recalc_summaries()
     #chroma.calc_embeddings_messages(id=None)
     #chroma.calc_embeddings_summaries(id=None)
-    cm.calc_concepts_summaries(id=None)
+    #cm.calc_concepts_summaries(id=None)
 
     #run_telegram_bot()
-    #prompt = gs.message_manager.get_prompt()
+    prompt = gs.message_manager.get_prompt()
     #print(prompt)

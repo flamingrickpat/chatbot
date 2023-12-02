@@ -330,10 +330,10 @@ class ConceptManager():
             else:
                 cur.execute("insert into graph_relations (src_node_id, dest_node_id, revision_count) values (?, ?, ?)", (src, dest, 1))
 
-        def insert_context(sum_id, concept_name, concept_context, context_embedding):
+        def insert_context(sum_id, concept_name, concept_context, context_embedding, tc):
             node = get_concept_id(concept_name)
-            cur.execute("insert into graph_context (node_id, summary_id, context, embedding) values (?, ?, ?, ?)",
-                        (node, sum_id, concept_context, sqlite3.Binary(context_embedding)))
+            cur.execute("insert into graph_context (node_id, summary_id, context, token_count, embedding) values (?, ?, ?, ?, ?)",
+                        (node, sum_id, concept_context, tc, sqlite3.Binary(context_embedding)))
 
         if id is None:
             sql = "select * from summaries"
@@ -351,7 +351,8 @@ class ConceptManager():
                 for mini_batch_i, concept in enumerate(chunk):
                     upsert_concept(concept.name)
                     blob = self.gs.chroma_manager.text_to_embedding_blob(concept.context)
-                    insert_context(summary_id, concept.name, concept.context, blob)
+                    token_count = self.gs.model_manager.get_token_count(concept.context)
+                    insert_context(summary_id, concept.name, concept.context, blob, token_count)
 
             for chunk in concepts:
                 for mini_batch_i, concept in enumerate(chunk):

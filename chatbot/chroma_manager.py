@@ -3,7 +3,7 @@ from sentence_transformers import SentenceTransformer
 import sqlite3
 
 from chatbot.global_state import GlobalState
-from chatbot.utils import np_to_blob, blob_to_np
+from chatbot.utils import np_to_blob, blob_to_np, cosine_sim
 
 class ChromaManager:
     def __init__(self):
@@ -146,3 +146,45 @@ class ChromaManager:
         embeddings = self.model.encode(text)
         blob = np_to_blob(embeddings)
         return blob
+
+    def get_results_db(self, is_message: bool, character_id: int, text: str, count: int) -> dict:
+        con = self.gs.db_manager.con
+        cur = self.gs.db_manager.cur
+
+        embedding_src = self.model.encode(text)
+
+        if is_message:
+            res = cur.execute("select * from messages where character_id = ?", (character_id,)).fetchall()
+        else:
+            res = cur.execute("select * from summaries where character_id = ?", (character_id,)).fetchall()
+
+        class Item():
+            def __init__(self, id, distance, token_count):
+                self.id = id
+                self.distance = distance
+                self.token_count = token_count
+
+        items = []
+        for i, row in enumerate(res):
+            id = row["id"]
+            blob = row["embedding"]
+            token_count = row["token_count"]
+            embedding = blob_to_np(blob)
+
+            distance = cosine_sim(embedding_src, embedding)
+            items.append(Item(id, distance, token_count))
+
+        new_list = sorted(items, key=lambda x: x.distance, reverse=False)
+        res = {
+            "ids": [],
+            "distances": [],
+            "token_counts": [],
+        }
+        for i in range(count):
+            if i >= len(new_list):
+                break
+            res["ids"].append(new_list[i].id)
+            res["distances"].append(new_list[i].distance)
+            res["token_counts"].append(new_list[i].token_count)
+
+        return res

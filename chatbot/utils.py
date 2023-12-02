@@ -2,6 +2,7 @@ import re
 import sqlite3
 import numpy as np
 import io
+from numpy.linalg import norm
 
 
 def clamp(n, min, max):
@@ -75,3 +76,6 @@ def blob_to_np(text):
     out = io.BytesIO(text)
     out.seek(0)
     return np.load(out)
+
+def cosine_sim(A, B):
+    return np.dot(A, B) / (norm(A) * norm(B))

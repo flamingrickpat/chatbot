@@ -460,7 +460,9 @@ class MessageManager():
         token_count_ustm = 0
         token_count_stm = 0
         token_count_ltm = 0
+        token_count_concepts = 0
 
+        context_size_reserved_concept = int(self.gs.config["context_size"] * self.gs.config["context_size_reserved_concept"])
         context_size_reserved_ltm = int(self.gs.config["context_size"] * self.gs.config["context_size_reserved_ltm"])
         context_size_reserved_stm = int(self.gs.config["context_size"] * self.gs.config["context_size_reserved_stm"])
 
@@ -490,11 +492,12 @@ class MessageManager():
         chroma_dict = OrderedDict()
         for id in mem_ustm:
             msg = self.get_message_per_id(id)
-            vecs = self.gs.chroma_manager.get_results(is_message=True, character_id=self.current_character_id, text=msg, count=100)
+            vecs = self.gs.chroma_manager.get_results_db(is_message=True, character_id=self.current_character_id, text=msg, count=100)
 
             for i in range(len(vecs["ids"][0])):
                 id = vecs["ids"][0][i]
                 dist = vecs["distances"][0][i]
+                tc = vecs["token_counts"][0][i]
 
                 if id in chroma_dict:
                     if dist < chroma_dict[id]:
@@ -516,7 +519,6 @@ class MessageManager():
 
         for i in range(len(lst_tmp)):
             pass
-
 
         print(chroma_dict)
 
