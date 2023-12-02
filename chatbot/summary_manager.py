@@ -159,6 +159,8 @@ class SummaryManager:
                 self.con.commit()
                 inserted_id = self.cur.lastrowid
 
+                self.gs.chroma_manager.calc_embeddings_summaries(id=inserted_id)
+
                 if emotion_counter > 0:
                     for emotion in emotion_list:
                         sql = f"update summaries set {emotion} = ? where id = ?"

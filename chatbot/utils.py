@@ -1,5 +1,7 @@
 import re
-
+import sqlite3
+import numpy as np
+import io
 
 
 def clamp(n, min, max):
@@ -60,3 +62,16 @@ def split_into_sentences(text: str) -> list[str]:
     sentences = [s.strip() for s in sentences]
     if sentences and not sentences[-1]: sentences = sentences[:-1]
     return sentences
+
+
+
+def np_to_blob(arr):
+    out = io.BytesIO()
+    np.save(out, arr)
+    out.seek(0)
+    return sqlite3.Binary(out.read())
+
+def blob_to_np(text):
+    out = io.BytesIO(text)
+    out.seek(0)
+    return np.load(out)

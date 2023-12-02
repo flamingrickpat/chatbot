@@ -1,8 +1,9 @@
 import chromadb
 from sentence_transformers import SentenceTransformer
+import sqlite3
 
 from chatbot.global_state import GlobalState
-
+from chatbot.utils import np_to_blob, blob_to_np
 
 class ChromaManager:
     def __init__(self):
@@ -25,6 +26,7 @@ class ChromaManager:
 
         if embedder != "":
             chromadb_embedder = SentenceTransformer(embedder)
+            self.model = chromadb_embedder
             emb_fn = lambda *args, **kwargs: chromadb_embedder.encode(*args, **kwargs).tolist()
 
             self.col_messages = self.chroma.get_or_create_collection(name="messages", embedding_function=emb_fn)
@@ -96,3 +98,46 @@ class ChromaManager:
                     break
 
         return res
+
+
+    def calc_embeddings_messages(self, id):
+        con = self.gs.db_manager.con
+        cur = self.gs.db_manager.cur
+
+        if id is None:
+            sql = "select * from messages"
+        else:
+            sql = f"select * from messages where id = {id}"
+        res = cur.execute(sql)
+        res = res.fetchall()
+        for r in res:
+            id = r["id"]
+            msg = r["message"]
+
+            embeddings = self.model.encode(msg)
+            blob = np_to_blob(embeddings)
+
+            sql = "update messages set embedding = ? where id = ?"
+            cur.execute(sql, (sqlite3.Binary(blob), id))
+        con.commit()
+
+    def calc_embeddings_summaries(self, id):
+        con = self.gs.db_manager.con
+        cur = self.gs.db_manager.cur
+
+        if id is None:
+            sql = "select * from summaries"
+        else:
+            sql = f"select * from summaries where id = {id}"
+        res = cur.execute(sql)
+        res = res.fetchall()
+        for r in res:
+            id = r["id"]
+            summary = r["summary"]
+
+            embeddings = self.model.encode(summary)
+            blob = np_to_blob(embeddings)
+
+            sql = "update summaries set embedding = ? where id = ?"
+            cur.execute(sql, (sqlite3.Binary(blob), id))
+        con.commit()

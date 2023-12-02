@@ -80,6 +80,8 @@ def main(args: List[str]) -> None:
 
     #em.recalc_emotions()
     #sm.recalc_summaries()
+    chroma.calc_embeddings_messages(id=None)
+    chroma.calc_embeddings_summaries(id=None)
 
     #run_telegram_bot()
     #prompt = gs.message_manager.get_prompt()
