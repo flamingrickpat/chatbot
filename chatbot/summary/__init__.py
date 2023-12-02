@@ -1,1 +1,2 @@
 from chatbot.summary.summary_openai import SummaryOpenai
+from chatbot.summary.summary_bart import SummaryBart

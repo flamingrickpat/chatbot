@@ -23,7 +23,7 @@ class EmotionManger:
         except Exception as e:
             return 0.5
 
-    def get_emotions(self, text: str) -> list:
+    def get_emotions_old(self, text: str) -> list:
         # [{'label': 'anger', 'score': 0.9796756505966187}, {'label': 'sadness', 'score': 0.010976619087159634}, {'label': 'joy', 'score': 0.0030405886936932802}, {'label': 'love', 'score': 0.002827202435582876}, {'label': 'fear', 'score': 0.0018505036132410169}, {'label': 'surprise', 'score': 0.0016293766675516963}]
         output = self.emotion_classifier(
             text,
@@ -32,5 +32,33 @@ class EmotionManger:
         )[0]
         return sorted(output, key=lambda x: x["score"], reverse=True)
     
+    def recalc_emotions(self):
+        """
+        Recalc emotions of all messages.
+        :return:
+        """
+        mm = self.gs.message_manager
+        res = mm.cur.execute("SELECT * FROM messages")
+        res = res.fetchall()
+
+        for i in range(len(res)):
+            id = res[i]["id"]
+            character_id = res[i]["character_id"]
+            is_user = res[i]["is_user"]
+            message = res[i]["message"]
+            character = res[i]["character"]
+            token_count = res[i]["token_count"]
+
+            output = self.emotion_classifier(
+                message,
+                truncation=False,
+                max_length=self.emotion_classifier.model.config.max_position_embeddings,
+            )[0]
+            for d in output:
+                lbl = d["label"]
+                sql = f"update messages set {lbl} = ? where id = ?"
+                mm.cur.execute(sql, (d["score"], id))
+
+        mm.con.commit()
 
 

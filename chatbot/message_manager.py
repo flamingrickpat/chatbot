@@ -3,12 +3,13 @@ import os
 from typing import Dict, List, Any, Tuple
 from datetime import datetime, timezone
 import logging
+from collections import OrderedDict
 
 import jellyfish
 
 from chatbot.global_state import GlobalState
 from chatbot.exceptions import *
-from chatbot.utils import split_into_sentences
+from chatbot.utils import split_into_sentences, clamp
 
 logger = logging.getLogger('message_manager')
 
@@ -306,8 +307,9 @@ class MessageManager():
 
                 # Clean up and insert into db!
                 if text != "":
-                    # text = text.replace(f"{self.current_character_name}:", "").strip()
                     user_name = self.gs.config["user_name"]
+
+                    text = text.replace(f"{self.current_character_name}:", "").strip()
                     text = text.replace(f"{user_name}:", "")
                     text = text.replace("### Input:", "")
                     text = text.replace("### Response:", "")
@@ -331,7 +333,7 @@ class MessageManager():
         self.cur.execute(sql, (telegram_chat_id, telegram_message_id, db_message_id))
         self.con.commit()
 
-    def get_prompt(self) -> str:
+    def get_prompt_old(self) -> str:
         """
         Generate current prompt with intro and messages to fit inside context size.
         """
@@ -442,6 +444,120 @@ class MessageManager():
         assert (final_length <= self.gs.config["context_size"])
 
         return new_prompt
+
+    def get_message_per_id(self, id: int) -> str:
+        res = self.cur.execute("SELECT * FROM messages where id = ?", (id,))
+        res = res.fetchall()
+        if len(res) > 0:
+            return res[0]["message"]
+        return ""
+
+    def get_prompt(self) -> str:
+        """
+        Generate current prompt with intro and messages to fit inside context size.
+        """
+
+        # Set current tokens to context size
+        tokens_current = self.gs.config["context_size"]
+
+        # Add character card to prompt
+        res = self.cur.execute("SELECT * FROM characters where id = ?", (self.current_character_id,))
+        res = res.fetchall()
+        card = res[0]["card"].replace("\r", "")
+
+        # Recalculate token count to be safe
+        token_count = self.gs.model_manager.get_token_count(card)
+        tokens_current -= token_count
+
+        res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
+        res = res.fetchall()
+
+        mem_ustm = []
+        mem_stm = []
+        mem_ltm = []
+        mem_ltm_temp = []
+
+        token_count_ustm = 0
+        token_count_stm = 0
+        token_count_ltm = 0
+
+        context_size_reserved_ltm = int(self.gs.config["context_size"] * self.gs.config["context_size_reserved_ltm"])
+        context_size_reserved_stm = int(self.gs.config["context_size"] * self.gs.config["context_size_reserved_stm"])
+
+        length = len(res)
+        i = length - 1
+        cnt = 0
+        while i >= 0:
+            id = res[i]["id"]
+            is_user = res[i]["is_user"]
+            message = res[i]["message"]
+            character = res[i]["character"]
+            token_count = res[i]["token_count"] + 1
+
+            if token_count_ustm + token_count_stm < context_size_reserved_stm:
+                if cnt < self.gs.config["message_count_ustm"]:
+                    mem_ustm.append(id)
+                    token_count_ustm += token_count
+                else:
+                    mem_stm.append(id)
+                    token_count_stm += token_count
+            else:
+                mem_ltm_temp.append(id)
+
+            i -= 1
+            cnt += 1
+
+        chroma_dict = OrderedDict()
+        for id in mem_ustm:
+            msg = self.get_message_per_id(id)
+            vecs = self.gs.chroma_manager.get_results(is_message=True, character_id=self.current_character_id, text=msg, count=100)
+
+            for i in range(len(vecs["ids"][0])):
+                id = vecs["ids"][0][i]
+                dist = vecs["distances"][0][i]
+
+                if id in chroma_dict:
+                    if dist < chroma_dict[id]:
+                        chroma_dict[id] = dist
+                else:
+                    chroma_dict[id] = dist
+
+        class MsgItem:
+            def __init__(self, id, priority):
+                self.id = id
+                self.priority = priority
+
+        lst_tmp = []
+        for key, value in chroma_dict.items():
+            if key in mem_ltm_temp:
+                prio = 1 - clamp(value, 0, 1)
+                item = MsgItem(key, prio)
+                lst_tmp.append(item)
+
+        for i in range(len(lst_tmp)):
+            pass
+
+
+        print(chroma_dict)
+
+        return ""
+
+        for i in range(len(res)):
+            res[i]["priority"] = 0
+
+        last_messages = ""
+        for i in range(len(res) - 1, -1, -1):
+
+
+            msg = character + ": " + message
+
+
+
+        new_prompt = card + last_messages
+
+        return new_prompt
+
+
 
     def call_model(self, prompt: str) -> str:
         """

@@ -285,25 +285,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 chat_id = msg.chat_id
                 message_id = msg.message_id
                 gs.message_manager.set_telegram_info(db_id, chat_id, message_id)
-
-            return
-
-            tmp = await update.message.reply_text(text)
-
-            chat_id = tmp.chat_id
-            message_id = tmp.message_id
-
-            time.sleep(5)
-
-            await context.bot.deleteMessage(
-                chat_id=chat_id,
-                message_id=message_id,
-                read_timeout=DEFAULT_NONE,
-                write_timeout=DEFAULT_NONE,
-                connect_timeout=DEFAULT_NONE,
-                pool_timeout=DEFAULT_NONE,
-                api_kwargs=None
-            )
+                
         elif gs.telegram_state == TELEGRAM_STATE_CARD:
             text = update.message.text.strip()
             name, token_length = gs.message_manager.update_character_card(text)

@@ -1,5 +1,15 @@
 import re
 
+
+
+def clamp(n, min, max):
+    if n < min:
+        return min
+    elif n > max:
+        return max
+    else:
+        return n
+
 def split_into_sentences(text: str) -> list[str]:
     """
     https://stackoverflow.com/questions/4576077/how-can-i-split-a-text-into-sentences

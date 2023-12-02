@@ -14,7 +14,7 @@ from chatbot.constants import *
 from chatbot.message_manager import MessageManager
 from chatbot.model_manager import ModelManager
 from chatbot.global_state import GlobalState
-from chatbot.summary import SummaryOpenai
+from chatbot.summary import SummaryOpenai, SummaryBart
 from chatbot.chroma_manager import ChromaManager
 from chatbot.emotion_manager import EmotionManger
 
@@ -44,6 +44,10 @@ def main(args: List[str]) -> None:
         summarizer = SummaryOpenai()
         summarizer.init_summarizer()
         gs.summarizer = summarizer
+    elif config["summarizer"] == "openai":
+        summarizer = SummaryBart()
+        summarizer.init_summarizer()
+        gs.summarizer = summarizer
 
     em = EmotionManger()
     gs.emotion_manager = em
@@ -60,7 +64,7 @@ def main(args: List[str]) -> None:
     gs.chroma_manager = chroma
 
     # Make new chroma db on startup
-    gs.message_manager.generate_missing_chroma_entries()
+    #gs.message_manager.generate_missing_chroma_entries()
 
     gs.telegram_chat_id = 0
     gs.telegram_message_id = 0
@@ -75,4 +79,8 @@ def main(args: List[str]) -> None:
         message_manager.select_character(gs.config["autoselect_character"])
         gs.telegram_state = TELEGRAM_STATE_CHAT
 
-    run_telegram_bot()
+    em.recalc_emotions()
+
+    #run_telegram_bot()
+    #prompt = gs.message_manager.get_prompt()
+    #print(prompt)
