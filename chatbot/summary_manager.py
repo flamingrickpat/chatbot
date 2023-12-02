@@ -6,6 +6,9 @@ from chatbot.global_state import GlobalState
 from chatbot.emotion_manager import emotion_list
 
 EMOTION_SUMMARY_FRACTION = 0.5
+MODE_CALC_ALL = 1
+MODE_CALC_CONTINUE = 2
+MODE_CALC_LATEST = 3
 
 class SummaryManager:
     def __init__(self):
@@ -68,9 +71,13 @@ class SummaryManager:
             self.con.commit()
 
     def recalc_summaries(self):
-        self.cur.execute("delete from summaries")
-        self.cur.execute("delete from summaries_messages")
-        self.con.commit()
+        self.calc_summaries(MODE_CALC_ALL, True)
+
+    def calc_summaries(self, mode: int, clear: bool):
+        if clear:
+            self.cur.execute("delete from summaries")
+            self.cur.execute("delete from summaries_messages")
+            self.con.commit()
 
         res = self.cur.execute("SELECT * FROM characters")
         chars = res.fetchall()
@@ -78,8 +85,22 @@ class SummaryManager:
         for i in range(len(chars)):
             char_id = chars[i]["id"]
 
-            res = self.cur.execute("SELECT * FROM messages where character_id = ?", (char_id,))
-            msgs = res.fetchall()
+            if mode == MODE_CALC_ALL:
+                res = self.cur.execute("SELECT * FROM messages where character_id = ?", (char_id,))
+                msgs = res.fetchall()
+            elif mode == MODE_CALC_CONTINUE:
+                res = self.cur.execute("SELECT max(last_message_id) as lmi FROM summaries where character_id = ?", (char_id,))
+                tmp = res.fetchall()
+                last_message_id = -10000000
+                if len(tmp) > 0:
+                    last_message_id = tmp[0]["lmi"]
+                res = self.cur.execute("SELECT * FROM messages where character_id = ? and id > ?", (char_id, last_message_id))
+                msgs = res.fetchall()
+            elif mode == MODE_CALC_LATEST:
+                lim = self.gs.config["summarizer_message_count"]
+                sql = f"SELECT * from messages where id in (select id from messages where character_id = {char_id} order by id desc limit {lim}) order by id asc"
+                res = self.cur.execute(sql)
+                msgs = res.fetchall()
 
             for j in range(len(msgs)):
                 cur_block_ids = []
