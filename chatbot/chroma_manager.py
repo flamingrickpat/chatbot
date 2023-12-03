@@ -3,7 +3,7 @@ from sentence_transformers import SentenceTransformer
 import sqlite3
 
 from chatbot.global_state import GlobalState
-from chatbot.utils import np_to_blob, blob_to_np, cosine_sim
+from chatbot.utils import np_to_blob, blob_to_np, cosine_sim, l2_squared
 
 class ChromaManager:
     def __init__(self):
@@ -171,10 +171,10 @@ class ChromaManager:
             token_count = row["token_count"]
             embedding = blob_to_np(blob)
 
-            distance = cosine_sim(embedding_src, embedding)
+            distance = l2_squared(embedding_src, embedding)
             items.append(Item(id, distance, token_count))
 
-        new_list = sorted(items, key=lambda x: x.distance, reverse=True)
+        new_list = sorted(items, key=lambda x: x.distance, reverse=False)
         res = {
             "ids": [],
             "distances": [],

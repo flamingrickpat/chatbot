@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 import logging
 from collections import OrderedDict
 
+from scipy.signal import savgol_filter
 import jellyfish
+import numpy as np
 
 from chatbot.global_state import GlobalState
 from chatbot.exceptions import *
@@ -526,7 +528,7 @@ class MessageManager():
                 id = vecs["ids"][i]
                 dist = vecs["distances"][i]
                 tc = vecs["token_counts"][i]
-                prio = dist
+                prio = 3 - dist
 
                 if id in mem_ltm_temp and id not in tmp and prio >= 0:
                     item = MsgItem(id, prio, tc)
@@ -534,32 +536,15 @@ class MessageManager():
                     tmp.append(id)
 
         lst_tmp = []
+        prios = []
         for key, value in chroma_dict.items():
             lst_tmp.append(value)
+            prios.append(value.priority)
 
-        for i in range(len(lst_tmp)):
-            item = lst_tmp[i]
-
-            if False:
-                j = i - 1
-                while True:
-                    if j < 0 or abs(j - i) >= self.gs.config["message_gauss_range"]:
-                        break
-                    item2 = lst_tmp[j]
-                    factor = (j - (i - self.gs.config["message_gauss_range"])) / self.gs.config["message_gauss_range"]
-                    new_prio = item2.priority + (item.priority * factor)
-                    item2.priority = clamp(new_prio, 0, 1)
-                    j -= 1
-
-                j = i + 1
-                while True:
-                    if j >= len(lst_tmp) or abs(j - i) >= self.gs.config["message_gauss_range"]:
-                        break
-                    item2 = lst_tmp[j]
-                    factor = 1 - ((j - i) / self.gs.config["message_gauss_range"])
-                    new_prio = item2.priority + (item.priority * factor)
-                    item2.priority = clamp(new_prio, 0, 1)
-                    j += 1
+        yhat = savgol_filter(np.array(prios), self.gs.config["message_gauss_range"], 3)
+        lst_smoothed = yhat.tolist()
+        for i, val in enumerate(lst_smoothed):
+            lst_tmp[i].priority = lst_smoothed[i]
 
         new_list = sorted(lst_tmp, key=lambda x: x.priority, reverse=True)
         for item in new_list:

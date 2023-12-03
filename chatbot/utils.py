@@ -79,3 +79,7 @@ def blob_to_np(text):
 
 def cosine_sim(A, B):
     return np.dot(A, B) / (norm(A) * norm(B))
+
+def l2_squared(A, B):
+    dist = np.power(norm(A - B), 2)
+    return dist
