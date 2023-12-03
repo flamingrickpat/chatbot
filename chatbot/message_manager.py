@@ -533,8 +533,6 @@ class MessageManager():
         new_prompt = card
         return new_prompt
 
-
-
     def call_model(self, prompt: str) -> str:
         """
         Append

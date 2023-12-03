@@ -322,14 +322,17 @@ class EmotionManger:
         emotion_map = {}
         for emotion in emotion_list:
             emotion_map[emotion] = 0
-        for id in ids:
+        for i, id in enumerate(ids):
             if is_message:
                 res = self.cur.execute(f"select * from messages where id = ?", (id,)).fetchall()
             else:
                 res = self.cur.execute(f"select * from summaries where id in (select summary_id from graph_context where id = {id})").fetchall()
             if len(res) > 0:
                 for emotion in emotion_list:
-                    emotion_map[emotion] = emotion_map[emotion] + res[0][emotion]
+                    scaled_em = res[0][emotion]
+                    if is_message:
+                        scaled_em = res[0][emotion] * (i / len(ids))
+                    emotion_map[emotion] = emotion_map[emotion] + scaled_em
 
         as_text = ""
         for key, value in emotion_map.items():
