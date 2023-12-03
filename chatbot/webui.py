@@ -124,13 +124,16 @@ def main(page: ft.Page):
     )
 
     # Init messages
-    messages = gs.message_manager.get_all_messages()
-    for msg in messages:
-        message = Message(msg["name"], msg["message"], "chat_message")
-        if message.message_type == "chat_message":
-            m = ChatMessage(message)
-        chat.controls.append(m)
-    page.update()
+    try:
+        messages = gs.message_manager.get_all_messages()
+        for msg in messages:
+            message = Message(msg["name"], msg["message"], "chat_message")
+            if message.message_type == "chat_message":
+                m = ChatMessage(message)
+            chat.controls.append(m)
+        page.update()
+    except:
+        exit(1)
 
 def start_webui():
     ft.app(port=8550, target=main, view=ft.WEB_BROWSER)

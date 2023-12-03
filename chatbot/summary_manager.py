@@ -114,8 +114,12 @@ class SummaryManager:
                 for emotion in emotion_list:
                     cur_emotions[emotion] = 0
 
-                if j < self.gs.config["summarizer_message_count"]:
-                    continue
+                if mode == MODE_CALC_ALL:
+                    if j < self.gs.config["summarizer_message_count"]:
+                        continue
+                elif mode == MODE_CALC_LATEST:
+                    if j != len(msgs) - 1:
+                        continue
 
                 for k in range(self.gs.config["summarizer_message_count"]):
                     if j - k >= 0:
