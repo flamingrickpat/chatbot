@@ -3,8 +3,10 @@ from numpy import std
 from collections import deque, Counter
 from statistics import stdev
 from math import exp
+import re
 
 from chatbot.global_state import GlobalState
+from chatbot.query_templates import emotion_template
 
 emotion_list = [
     "caring",
@@ -311,3 +313,34 @@ class EmotionManger:
                 self.cur.execute(sql, (d["score"], id))
 
         self.con.commit()
+
+
+    def get_emotion_from_ids(self, is_message, character_id, ids):
+        res = self.cur.execute("select name from characters where id = ?", (character_id,)).fetchall()
+        name = res[0]["name"]
+
+        emotion_map = {}
+        for emotion in emotion_list:
+            emotion_map[emotion] = 0
+        for id in ids:
+            if is_message:
+                res = self.cur.execute(f"select * from messages where id = ?", (id,)).fetchall()
+            else:
+                res = self.cur.execute(f"select * from summaries where id in (select summary_id from graph_context where id = {id})").fetchall()
+            if len(res) > 0:
+                for emotion in emotion_list:
+                    emotion_map[emotion] = emotion_map[emotion] + res[0][emotion]
+
+        as_text = ""
+        for key, value in emotion_map.items():
+            as_text = as_text + key + ": " + "{:.2f}".format(value) + "\n"
+
+        query = emotion_template
+        query = query.replace("<emotions>", as_text.strip())
+        query = query.replace("<name>", name.strip())
+
+        summary = self.gs.model_manager.get_message(query, stop_words=["</s>"])
+        summary = re.sub('[^a-zA-Z,.!? ]+', '', summary)
+        summary = summary.replace("\n", " ")
+
+        return summary

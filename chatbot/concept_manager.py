@@ -459,4 +459,5 @@ class ConceptManager():
             token_count += token_count_map[id]
 
         text = self.id_list_to_block(final_id_list)
-        return text
+        emotions = self.gs.emotion_manager.get_emotion_from_ids(False, character_id, final_id_list)
+        return text, emotions

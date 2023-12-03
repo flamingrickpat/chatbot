@@ -511,12 +511,13 @@ class MessageManager():
             max_token_count=context_size_reserved_ltm
         )
 
-        mem_context = self.gs.concept_manager.get_current_thoughts(
+        context, context_emotions = self.gs.concept_manager.get_current_thoughts(
             character_id=self.current_character_id,
             summary_count=self.gs.config["message_count_ustm"],
             max_tokens=context_size_reserved_concept
         )
 
+        stm_emotions = self.gs.emotion_manager.get_emotion_from_ids(True, self.current_character_id, mem_stm + mem_ustm)
 
         ltm = self.id_list_to_block(mem_ltm)
         stm = self.id_list_to_block(mem_stm)
@@ -525,7 +526,9 @@ class MessageManager():
         card = card.replace("#LTM#", ltm)
         card = card.replace("#STM#", stm)
         card = card.replace("#USTM#", ustm)
-        card = card.replace("#CONCEPTS#", mem_context)
+        card = card.replace("#CONCEPTS#", context)
+        card = card.replace("#CONCEPT_EMOTIONS#", context_emotions)
+        card = card.replace("#STM_EMOTIONS#", stm_emotions)
 
         new_prompt = card
         return new_prompt
