@@ -3,11 +3,18 @@ import re
 import contextlib
 import io
 import sqlite3
+import random
 
 import stanza
 from nltk.stem import PorterStemmer
+import hdbscan
+import pandas as pd
+import numpy as np
+from umap import UMAP
 
 from chatbot.global_state import GlobalState
+from chatbot.utils import blob_to_np
+
 """
 Most of this code is stolen from: https://github.com/cisco-open/DeepVision/tree/main/recallm
 """
@@ -360,3 +367,96 @@ class ConceptManager():
                         upsert_relation(concept.name, rel_concept.name)
 
             con.commit()
+
+    def get_context_id(self, id: int) -> str:
+        con = self.gs.db_manager.con
+        cur = self.gs.db_manager.cur
+
+        res = cur.execute("SELECT * FROM graph_context where id = ?", (id,))
+        res = res.fetchall()
+        if len(res) > 0:
+            return res[0]["context"]
+        return ""
+
+    def id_list_to_block(self, lst):
+        text = ""
+        for id in lst:
+            text = text + self.get_context_id(id) + "\n"
+        return text.strip()
+
+    def get_current_thoughts(self, character_id, summary_count, max_tokens):
+        con = self.gs.db_manager.con
+        cur = self.gs.db_manager.cur
+
+        # get latest summaries
+        sql = f"select * from summaries where id in (select id from summaries where character_id = {character_id} " \
+              f"order by id desc limit {summary_count}) order by id asc"
+        res = cur.execute(sql).fetchall()
+        concept_names = set()
+        for i, row in enumerate(res):
+            summary_id = row["id"]
+            summary = row["summary"]
+            concepts = self.fetch_concepts_from_texts([summary])
+            for chunk in concepts:
+                for mini_batch_i, concept in enumerate(chunk):
+                    concept_names.add(concept.name)
+
+        # fetch concepts from db
+        concept_ids = []
+        for concept in concept_names:
+            sql = "select id from graph_nodes where name = ?"
+            res = cur.execute(sql, (concept,)).fetchall()
+            if len(res) > 0:
+                concept_ids.append(str(res[0]["id"]))
+
+        sql = "select * from graph_context where node_id in ({seq})".format(seq=','.join(concept_ids))
+        res = cur.execute(sql).fetchall()
+
+        ids = []
+        data = []
+        token_count_map = {}
+        for row in res:
+            ids.append(row["id"])
+            blob = row["embedding"]
+            token_count_map[row["id"]] = row["token_count"]
+            embedding = blob_to_np(blob)
+            data.append(embedding)
+
+        d = np.row_stack(data)
+
+        umap_model = UMAP(n_neighbors=15, n_components=6, min_dist=0.0, metric='cosine')
+        tmp = umap_model.fit_transform(d)
+
+        df = pd.DataFrame(tmp)
+        clusterer = hdbscan.HDBSCAN(metric='euclidean', cluster_selection_method='eom', prediction_data=True)
+        clusterer.fit(df)
+
+        label_count = clusterer.labels_.max()
+        labels = clusterer.labels_
+        probabilities = clusterer.probabilities_
+
+        m = {}
+        for i in range(len(ids)):
+            id = ids[i]
+            lbl = clusterer.labels_[i]
+
+            if lbl in m:
+                m[lbl].append(id)
+            else:
+                m[lbl] = [id,]
+
+        keys = list(m.keys())
+        random.shuffle(keys)
+
+        token_count = 0
+        final_id_list = []
+        for key in keys:
+            if token_count > max_tokens:
+                break
+            lst = m[key]
+            id = random.choice(lst)
+            final_id_list.append(id)
+            token_count += token_count_map[id]
+
+        text = self.id_list_to_block(final_id_list)
+        return text
