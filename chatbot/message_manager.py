@@ -504,54 +504,12 @@ class MessageManager():
             i -= 1
             cnt += 1
 
-        class MsgItem:
-            def __init__(self, id, priority, token_count):
-                self.id = id
-                self.priority = priority
-                self.token_count = token_count
-
-            def __eq__(self, other) -> bool:
-                if isinstance(other, MsgItem):
-                    return self.id == other.id
-                return False
-
-            def __hash__(self):
-                return self.id
-
-        chroma_dict = OrderedDict()
-        tmp = []
-        for id in mem_ustm:
-            msg = self.get_message_per_id(id)
-            vecs = self.gs.chroma_manager.get_results_db(is_message=True, character_id=self.current_character_id, text=msg, count=100)
-
-            for i in range(len(vecs["ids"])):
-                id = vecs["ids"][i]
-                dist = vecs["distances"][i]
-                tc = vecs["token_counts"][i]
-                prio = 3 - dist
-
-                if id in mem_ltm_temp and id not in tmp and prio >= 0:
-                    item = MsgItem(id, prio, tc)
-                    chroma_dict[id] = item
-                    tmp.append(id)
-
-        lst_tmp = []
-        prios = []
-        for key, value in chroma_dict.items():
-            lst_tmp.append(value)
-            prios.append(value.priority)
-
-        yhat = savgol_filter(np.array(prios), self.gs.config["message_gauss_range"], 3)
-        lst_smoothed = yhat.tolist()
-        for i, val in enumerate(lst_smoothed):
-            lst_tmp[i].priority = lst_smoothed[i]
-
-        new_list = sorted(lst_tmp, key=lambda x: x.priority, reverse=True)
-        for item in new_list:
-            if token_count_ltm > context_size_reserved_ltm:
-                break
-            mem_ltm.append(item.id)
-            token_count_ltm += item.token_count
+        mem_ltm = self.gs.chroma_manager.get_related_messages(
+            current_character_id=self.current_character_id,
+            mem_ustm=mem_ustm,
+            mem_ltm_temp=mem_ltm_temp,
+            max_token_count=context_size_reserved_ltm
+        )
 
         ltm = self.id_list_to_block(mem_ltm)
         stm = self.id_list_to_block(mem_stm)

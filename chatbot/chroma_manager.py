@@ -1,6 +1,10 @@
 import chromadb
 from sentence_transformers import SentenceTransformer
 import sqlite3
+from collections import OrderedDict
+
+from scipy.signal import savgol_filter
+import numpy as np
 
 from chatbot.global_state import GlobalState
 from chatbot.utils import np_to_blob, blob_to_np, cosine_sim, l2_squared
@@ -188,3 +192,58 @@ class ChromaManager:
             res["token_counts"].append(new_list[i].token_count)
 
         return res
+
+    def get_related_messages(self, current_character_id, mem_ustm, mem_ltm_temp, max_token_count):
+        class MsgItem:
+            def __init__(self, id, priority, token_count):
+                self.id = id
+                self.priority = priority
+                self.token_count = token_count
+
+            def __eq__(self, other) -> bool:
+                if isinstance(other, MsgItem):
+                    return self.id == other.id
+                return False
+
+            def __hash__(self):
+                return self.id
+
+        mem_ltm = []
+        token_count_ltm = 0
+
+        chroma_dict = OrderedDict()
+        tmp = []
+        for id in mem_ustm:
+            msg = self.gs.message_manager.get_message_per_id(id)
+            vecs = self.get_results_db(is_message=True, character_id=current_character_id, text=msg, count=100)
+
+            for i in range(len(vecs["ids"])):
+                id = vecs["ids"][i]
+                dist = vecs["distances"][i]
+                tc = vecs["token_counts"][i]
+                prio = 3 - dist
+
+                if id in mem_ltm_temp and id not in tmp and prio >= 0:
+                    item = MsgItem(id, prio, tc)
+                    chroma_dict[id] = item
+                    tmp.append(id)
+
+        lst_tmp = []
+        prios = []
+        for key, value in chroma_dict.items():
+            lst_tmp.append(value)
+            prios.append(value.priority)
+
+        yhat = savgol_filter(np.array(prios), self.gs.config["message_gauss_range"], 3)
+        lst_smoothed = yhat.tolist()
+        for i, val in enumerate(lst_smoothed):
+            lst_tmp[i].priority = lst_smoothed[i]
+
+        new_list = sorted(lst_tmp, key=lambda x: x.priority, reverse=True)
+        for item in new_list:
+            if token_count_ltm > max_token_count:
+                break
+            mem_ltm.append(item.id)
+            token_count_ltm += item.token_count
+
+        return mem_ltm
