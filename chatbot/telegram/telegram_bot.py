@@ -279,7 +279,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 except:
                     pass
             else:
-                db_id, response = gs.message_manager.get_response()
+                db_id, name, response = gs.message_manager.get_response()
                 msg = await update.message.reply_text(response)
 
                 chat_id = msg.chat_id

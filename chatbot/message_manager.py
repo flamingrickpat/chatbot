@@ -304,7 +304,7 @@ class MessageManager():
             except Exception as e:
                 logger.error(str(e))
 
-        return db_id, text, self.current_character_name
+        return db_id, self.current_character_name, text
 
     def set_telegram_info(self, db_message_id: int, telegram_chat_id: int, telegram_message_id: int) -> None:
         """
