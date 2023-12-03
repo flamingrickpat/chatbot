@@ -16,7 +16,7 @@ class DbManager:
         """
         path = self.gs.config["database_path"]
         if os.path.exists(path):
-            self.con = sqlite3.connect(path)
+            self.con = sqlite3.connect(path, check_same_thread=False)
             self.con.row_factory = sqlite3.Row
             self.cur = self.con.cursor()
         else:

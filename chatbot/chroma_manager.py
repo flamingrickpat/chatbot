@@ -15,6 +15,7 @@ class ChromaManager:
         self.chroma = None
         self.col_messages = None
         self.col_summaries = None
+        self.model = None
 
         self.initialize_chroma()
 
@@ -26,18 +27,10 @@ class ChromaManager:
 
         chroma_path = self.gs.config["chromadb_path"]
         embedder = self.gs.config["chromadb_embedder"]
-        self.chroma = chromadb.PersistentClient(path=chroma_path)
 
         if embedder != "":
             chromadb_embedder = SentenceTransformer(embedder)
             self.model = chromadb_embedder
-            emb_fn = lambda *args, **kwargs: chromadb_embedder.encode(*args, **kwargs).tolist()
-
-            self.col_messages = self.chroma.get_or_create_collection(name="messages", embedding_function=emb_fn)
-            self.col_summaries = self.chroma.get_or_create_collection(name="summaries", embedding_function=emb_fn)
-        else:
-            self.col_messages = self.chroma.get_or_create_collection(name="messages")
-            self.col_summaries = self.chroma.get_or_create_collection(name="summaries")
 
     def insert(self, is_message: bool, id: int, character_id: int, is_user: bool, text: str, token_count: int) -> None:
         if is_message:

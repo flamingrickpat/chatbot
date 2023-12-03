@@ -12,6 +12,7 @@ import numpy as np
 from chatbot.global_state import GlobalState
 from chatbot.exceptions import *
 from chatbot.utils import split_into_sentences, clamp
+from chatbot.db_manager import DbManager
 
 logger = logging.getLogger('message_manager')
 
@@ -114,12 +115,9 @@ class MessageManager():
         self.con.commit()
         id = self.cur.lastrowid
 
-        # insert into chroma db
-        self.gs.chroma_manager.insert(is_message=True, id=id, character_id=self.current_character_id,
-                                      is_user=is_user, text=full_message, token_count=token_count)
-
-        # create new summary
-        self.summarize_last_messages()
+        self.gs.emotion_manager.calc_emotions(id)
+        self.gs.chroma_manager.calc_embeddings_messages(id)
+        self.gs.summary_manager.summarize_message()
 
         return id
 
@@ -301,7 +299,7 @@ class MessageManager():
             except Exception as e:
                 logger.error(str(e))
 
-        return db_id, text
+        return db_id, text, self.current_character_name
 
     def set_telegram_info(self, db_message_id: int, telegram_chat_id: int, telegram_message_id: int) -> None:
         """
@@ -660,4 +658,14 @@ class MessageManager():
             self.cur.execute(sql, (ratio, id))
             self.con.commit()
 
-
+    def get_all_messages(self):
+        lst = []
+        sql = "select * from messages where character_id = ? order by id asc"
+        res = self.cur.execute(sql, (self.current_character_id,)).fetchall()
+        for row in res:
+            tmp = {
+                "name": row["character"],
+                "message": row["message"]
+            }
+            lst.append(tmp)
+        return lst

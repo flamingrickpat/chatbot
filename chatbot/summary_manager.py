@@ -70,7 +70,10 @@ class SummaryManager:
                              (msg_id, inserted_id))
             self.con.commit()
 
-    def recalc_summaries(self):
+    def summarize_message(self):
+        self.calc_summaries(MODE_CALC_LATEST, False)
+
+    def recalc_all_summaries(self):
         self.calc_summaries(MODE_CALC_ALL, True)
 
     def calc_summaries(self, mode: int, clear: bool):
@@ -172,3 +175,6 @@ class SummaryManager:
                     self.cur.execute("INSERT INTO summaries_messages (message_id, summary_id) VALUES(?, ?)",
                                      (msg_id, inserted_id))
                     self.con.commit()
+
+                self.gs.chroma_manager.calc_embeddings_summaries(inserted_id)
+                self.gs.concept_manager.calc_concepts_summaries(inserted_id)

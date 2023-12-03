@@ -32,11 +32,8 @@ class ModelManager():
         self.init_tokenizer()
         self.init_model()
 
-        path = self.gs.config["database_path"]
-        if os.path.exists(path):
-            self.con = sqlite3.connect(path)
-            self.con.row_factory = sqlite3.Row
-            self.cur = self.con.cursor()
+        self.con = self.gs.db_manager.con
+        self.cur = self.gs.db_manager.cur
 
     def init_tokenizer(self) -> None:
         """Initialize tokenizer so length of messages can be calculated."""
