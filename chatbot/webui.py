@@ -60,13 +60,14 @@ def main(page: ft.Page):
 
     def send_message_click(e):
         if new_message.value != "":
-            page.pubsub.send_all(Message(gs.config["user_name"], new_message.value, message_type="chat_message"))
+            msg = new_message.value
+            page.pubsub.send_all(Message(gs.config["user_name"], msg, message_type="chat_message"))
             new_message.value = ""
             new_message.focus()
             page.update()
 
             gs.regenerate_counter = 0
-            gs.message_manager.insert_message(is_user=True, message=new_message.value)
+            gs.message_manager.insert_message(is_user=True, message=msg)
 
             db_id, name, response = gs.message_manager.get_response()
             page.pubsub.send_all(Message(name, response, message_type="chat_message"))

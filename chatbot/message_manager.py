@@ -262,31 +262,36 @@ class MessageManager():
             try:
                 text = ""
 
-                # Try until character name is in response!
-                self.gs.temperature_modifier = 0
-                self.gs.top_p_modifier = 0
+                if self.gs.config["check_similarity"]:
+                    # Try until character name is in response!
+                    self.gs.temperature_modifier = 0
+                    self.gs.top_p_modifier = 0
 
-                if self.gs.regenerate_counter > 0:
-                    self.gs.temperature_modifier = self.gs.temperature_modifier + \
-                                                   (self.gs.config["auto_raise_temperature"] * self.gs.regenerate_counter)
-                    self.gs.top_p_modifier = self.gs.top_p_modifier + \
-                                             (self.gs.config["auto_raise_top_p"] * self.gs.regenerate_counter)
-
-                while True:
-                    text = self.call_model(prompt)
-                    logger.info("New output: " + text.encode('ascii', 'ignore').decode('ascii'))
-                    logger.info(f"Using temp {self.gs.temperature_modifier} and top_p {self.gs.top_p_modifier} mod")
-                    if self.check_similarity_sentences(old_messages, text) and self.check_banned_phrases(text):
-                        text = self.clean_result(text)
-                        break
-                    else:
-                        logger.info("Too similar, increasing temperature and top_p!")
+                    if self.gs.regenerate_counter > 0:
                         self.gs.temperature_modifier = self.gs.temperature_modifier + \
-                                                       self.gs.config["auto_raise_temperature"]
-                        self.gs.top_p_modifier = self.gs.top_p_modifier + self.gs.config["auto_raise_top_p"]
+                                                       (self.gs.config["auto_raise_temperature"] * self.gs.regenerate_counter)
+                        self.gs.top_p_modifier = self.gs.top_p_modifier + \
+                                                 (self.gs.config["auto_raise_top_p"] * self.gs.regenerate_counter)
+
+                    while True:
+                        text = self.call_model(prompt)
+                        logger.info("New output: " + text.encode('ascii', 'ignore').decode('ascii'))
+                        logger.info(f"Using temp {self.gs.temperature_modifier} and top_p {self.gs.top_p_modifier} mod")
+                        if self.check_similarity_sentences(old_messages, text) and self.check_banned_phrases(text):
+                            text = self.clean_result(text)
+                            break
+                        else:
+                            logger.info("Too similar, increasing temperature and top_p!")
+                            self.gs.temperature_modifier = self.gs.temperature_modifier + \
+                                                           self.gs.config["auto_raise_temperature"]
+                            self.gs.top_p_modifier = self.gs.top_p_modifier + self.gs.config["auto_raise_top_p"]
+                else:
+                    text = self.call_model(prompt)
 
                 # Clean up and insert into db!
                 if text != "":
+                    tmp = text.encode('ascii', 'ignore').decode('ascii')
+                    logger.info("Response text: " + tmp)
                     user_name = self.gs.config["user_name"]
 
                     text = text.replace(f"{self.current_character_name}:", "").strip()

@@ -6,7 +6,7 @@ Conversation: <conv>
 Summary: """
 
 emotion_template = """
-The following table describes the emotions a person named <name> is feeling as value. Your goal is to summarize how <name> is currently feeling in a single sentence.
+The following table describes the emotions a person named <name> is feeling as value. Your goal is to summarize how <name> is currently feeling in a single sentence. Don't mention very weak emotions!
 Emotions:
 <emotions>
 
