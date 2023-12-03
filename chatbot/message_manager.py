@@ -462,7 +462,7 @@ class MessageManager():
         token_count = self.gs.model_manager.get_token_count(card)
         tokens_current -= token_count
 
-        res = self.cur.execute("SELECT * FROM messages where character_id = ?", (self.current_character_id,))
+        res = self.cur.execute("SELECT * FROM messages where character_id = ? order by id asc", (self.current_character_id,))
         res = res.fetchall()
 
         mem_ustm = []
@@ -502,12 +502,18 @@ class MessageManager():
             i -= 1
             cnt += 1
 
+        mem_ustm = sorted(mem_ustm)
+        mem_stm = sorted(mem_stm)
+        mem_ltm_temp = sorted(mem_ltm_temp)
+
         mem_ltm = self.gs.chroma_manager.get_related_messages(
             current_character_id=self.current_character_id,
             mem_ustm=mem_ustm,
             mem_ltm_temp=mem_ltm_temp,
             max_token_count=context_size_reserved_ltm
         )
+
+        mem_ltm = sorted(mem_ltm)
 
         context, context_emotions = self.gs.concept_manager.get_current_thoughts(
             character_id=self.current_character_id,
