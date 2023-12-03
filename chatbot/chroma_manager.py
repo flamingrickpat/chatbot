@@ -174,7 +174,7 @@ class ChromaManager:
             distance = cosine_sim(embedding_src, embedding)
             items.append(Item(id, distance, token_count))
 
-        new_list = sorted(items, key=lambda x: x.distance, reverse=False)
+        new_list = sorted(items, key=lambda x: x.distance, reverse=True)
         res = {
             "ids": [],
             "distances": [],

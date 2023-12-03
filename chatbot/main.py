@@ -90,4 +90,4 @@ def main(args: List[str]) -> None:
 
     #run_telegram_bot()
     prompt = gs.message_manager.get_prompt()
-    #print(prompt)
+    print(prompt)

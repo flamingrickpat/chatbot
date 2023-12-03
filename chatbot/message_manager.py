@@ -432,6 +432,19 @@ class MessageManager():
             return res[0]["message"]
         return ""
 
+    def get_full_message_per_id(self, id: int) -> str:
+        res = self.cur.execute("SELECT * FROM messages where id = ?", (id,))
+        res = res.fetchall()
+        if len(res) > 0:
+            return res[0]["character"] + ": " + res[0]["message"]
+        return ""
+
+    def id_list_to_block(self, lst):
+        text = ""
+        for id in lst:
+            text = text + self.get_full_message_per_id(id) + "\n"
+        return text.strip()
+
     def get_prompt(self) -> str:
         """
         Generate current prompt with intro and messages to fit inside context size.
@@ -489,54 +502,81 @@ class MessageManager():
             i -= 1
             cnt += 1
 
+        class MsgItem:
+            def __init__(self, id, priority, token_count):
+                self.id = id
+                self.priority = priority
+                self.token_count = token_count
+
+            def __eq__(self, other) -> bool:
+                if isinstance(other, MsgItem):
+                    return self.id == other.id
+                return False
+
+            def __hash__(self):
+                return self.id
+
         chroma_dict = OrderedDict()
+        tmp = []
         for id in mem_ustm:
             msg = self.get_message_per_id(id)
             vecs = self.gs.chroma_manager.get_results_db(is_message=True, character_id=self.current_character_id, text=msg, count=100)
 
-            for i in range(len(vecs["ids"][0])):
-                id = vecs["ids"][0][i]
-                dist = vecs["distances"][0][i]
-                tc = vecs["token_counts"][0][i]
+            for i in range(len(vecs["ids"])):
+                id = vecs["ids"][i]
+                dist = vecs["distances"][i]
+                tc = vecs["token_counts"][i]
+                prio = dist
 
-                if id in chroma_dict:
-                    if dist < chroma_dict[id]:
-                        chroma_dict[id] = dist
-                else:
-                    chroma_dict[id] = dist
-
-        class MsgItem:
-            def __init__(self, id, priority):
-                self.id = id
-                self.priority = priority
+                if id in mem_ltm_temp and id not in tmp and prio >= 0:
+                    item = MsgItem(id, prio, tc)
+                    chroma_dict[id] = item
+                    tmp.append(id)
 
         lst_tmp = []
         for key, value in chroma_dict.items():
-            if key in mem_ltm_temp:
-                prio = 1 - clamp(value, 0, 1)
-                item = MsgItem(key, prio)
-                lst_tmp.append(item)
+            lst_tmp.append(value)
 
         for i in range(len(lst_tmp)):
-            pass
+            item = lst_tmp[i]
 
-        print(chroma_dict)
+            if False:
+                j = i - 1
+                while True:
+                    if j < 0 or abs(j - i) >= self.gs.config["message_gauss_range"]:
+                        break
+                    item2 = lst_tmp[j]
+                    factor = (j - (i - self.gs.config["message_gauss_range"])) / self.gs.config["message_gauss_range"]
+                    new_prio = item2.priority + (item.priority * factor)
+                    item2.priority = clamp(new_prio, 0, 1)
+                    j -= 1
 
-        return ""
+                j = i + 1
+                while True:
+                    if j >= len(lst_tmp) or abs(j - i) >= self.gs.config["message_gauss_range"]:
+                        break
+                    item2 = lst_tmp[j]
+                    factor = 1 - ((j - i) / self.gs.config["message_gauss_range"])
+                    new_prio = item2.priority + (item.priority * factor)
+                    item2.priority = clamp(new_prio, 0, 1)
+                    j += 1
 
-        for i in range(len(res)):
-            res[i]["priority"] = 0
+        new_list = sorted(lst_tmp, key=lambda x: x.priority, reverse=True)
+        for item in new_list:
+            if token_count_ltm > context_size_reserved_ltm:
+                break
+            mem_ltm.append(item.id)
+            token_count_ltm += item.token_count
 
-        last_messages = ""
-        for i in range(len(res) - 1, -1, -1):
+        ltm = self.id_list_to_block(mem_ltm)
+        stm = self.id_list_to_block(mem_stm)
+        ustm = self.id_list_to_block(mem_ustm)
 
+        card = card.replace("#LTM#", ltm)
+        card = card.replace("#STM#", stm)
+        card = card.replace("#USTM#", ustm)
 
-            msg = character + ": " + message
-
-
-
-        new_prompt = card + last_messages
-
+        new_prompt = card
         return new_prompt
 
 
