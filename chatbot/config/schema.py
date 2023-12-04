@@ -99,7 +99,7 @@ config_schema = \
             "model": {
                 "type": "string",
                 "description": "type of model to use in background",
-                "enum": ["gguf", "hf", "api"]
+                "enum": ["gguf", "hf", "api", "exllamav2"]
             },
             "hf_model_path": {
                 "type": "string",

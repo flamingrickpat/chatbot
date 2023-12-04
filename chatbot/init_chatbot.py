@@ -35,6 +35,9 @@ def init_chatbot():
     model_manager = ModelManager()
     gs.model_manager = model_manager
 
+    model_manager.get_message("tell me a story: ", [])
+    exit(1)
+
     chroma = ChromaManager()
     gs.chroma_manager = chroma
 

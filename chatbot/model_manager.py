@@ -6,15 +6,10 @@ import sqlite3
 from datetime import datetime, timezone
 import shutil
 
-import torch
-from peft import PeftModel
 from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizerFast, StoppingCriteriaList
 
 from chatbot.global_state import GlobalState
 from chatbot.exceptions import *
-from chatbot.model import ModelApi, ModelHf, ModelGguf
-from chatbot.model import convert
-from chatbot import sleep_utils
 
 logger = logging.getLogger('model_manager')
 
@@ -57,11 +52,17 @@ class ModelManager():
         """Initialize model."""
         model_type = self.gs.config["model"]
         if model_type == "hf":
+            from chatbot.model.model_hf import ModelHf
             self.model = ModelHf()
         elif model_type == "api":
+            from chatbot.model.model_api import ModelApi
             self.model = ModelApi()
         elif model_type == "gguf":
-            self.model = None
+            from chatbot.model.model_gguf import ModelGguf
+            self.model = ModelGguf(model_type)
+        elif model_type == "exllamav2":
+            from chatbot.model.model_exllamav2 import ModelExllamaV2
+            self.model = ModelExllamaV2()
 
     def unload_model(self) -> None:
         """Unload model and free VRAM."""
@@ -79,6 +80,8 @@ class ModelManager():
 
         model_type = self.gs.config["model"]
         if model_type == "gguf":
+            from chatbot.model import ModelGguf
+
             path = self.get_finetuned_model_path(character_id)
             if path == "":
                 logger.info(f"Creating first model")
@@ -131,6 +134,7 @@ class ModelManager():
         outfile = f"finetune_{charname}_{date}.gguf"
         outfile_path = os.path.join(self.gs.config["model_path"], outfile)
 
+        from chatbot import sleep_utils
         sleep_utils.convert_to_gguf(input_path=path, output_path=outfile_path, character_id=character_id)
 
     def sleep(self, character_id: int):

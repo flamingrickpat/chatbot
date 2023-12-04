@@ -12,6 +12,7 @@ models/
 test/
 test_scripts/
 logs/latest_prompt.txt
+exui-master/
 
 # Distribution / packaging
 .Python
