@@ -109,10 +109,17 @@ class ModelExllamaV2(ModelBase):
         output = self.generator.generate_simple(prompt, settings, max_token_length, token_healing=True)
         torch.cuda.synchronize()
 
+        output = output[len(prompt):]
+
         print(output)
 
         if "</s>" in output:
             output = output.split("</s>")[0]
+
+        for stop_word in stop_words:
+            if stop_word in output:
+                output = output.split(stop_word)[0]
+
         output = output.strip()
 
         return output
